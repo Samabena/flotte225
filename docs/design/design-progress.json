@@ -1,0 +1,11 @@
+{
+  "architecture": true,
+  "database": true,
+  "api": true,
+  "uiux": true,
+  "integrations": true,
+  "security": true,
+  "devenv": true,
+  "lastUpdated": "2026-04-06",
+  "backlogVersion": "2026-04-06"
+}
