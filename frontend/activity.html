@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Journal d'activité — Flotte225</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            green: { DEFAULT: '#005F02', light: '#e6f0e6' },
+            gold: { DEFAULT: '#C0B87A', light: '#f7f4e8' },
+            cream: '#F2E3BB',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #F2E3BB; font-family: 'Inter', system-ui, sans-serif; }
+    .sidebar { background: #005F02; }
+    .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .badge-create { background:#D1FAE5; color:#065F46; }
+    .badge-update { background:#DBEAFE; color:#1D4ED8; }
+    .badge-delete { background:#FEE2E2; color:#DC2626; }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="sidebar w-56 min-h-screen flex flex-col p-5 text-white shrink-0">
+    <div class="mb-8">
+      <span class="text-xl font-bold tracking-wide text-[#C0B87A]">Flotte225</span>
+    </div>
+    <nav class="flex flex-col gap-1 text-sm font-medium">
+      <a href="dashboard-owner.html" class="px-3 py-2 rounded-lg hover:bg-white/10">Tableau de bord</a>
+      <a href="activity.html" class="px-3 py-2 rounded-lg bg-white/10">Journal d'activité</a>
+    </nav>
+    <div class="mt-auto">
+      <button id="btn-logout" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">
+        Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 p-6 overflow-y-auto">
+    <h1 class="text-2xl font-bold text-[#005F02] mb-6">Journal d'activité</h1>
+
+    <!-- Filters -->
+    <div class="card p-4 mb-4 flex flex-wrap gap-3 items-end">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Chauffeur</label>
+        <select id="filter-driver" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white">
+          <option value="">Tous</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Véhicule</label>
+        <select id="filter-vehicle" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm bg-white">
+          <option value="">Tous</option>
+        </select>
+      </div>
+      <button id="btn-filter" class="bg-[#005F02] text-white text-sm px-4 py-1.5 rounded-lg hover:bg-green-800">
+        Filtrer
+      </button>
+      <button id="btn-clear" class="text-sm text-gray-500 px-4 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50">
+        Effacer
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="card overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b">
+          <tr class="text-left text-gray-500">
+            <th class="px-4 py-3 font-medium">Date / Heure</th>
+            <th class="px-4 py-3 font-medium">Chauffeur</th>
+            <th class="px-4 py-3 font-medium">Véhicule</th>
+            <th class="px-4 py-3 font-medium">Action</th>
+          </tr>
+        </thead>
+        <tbody id="activity-tbody"></tbody>
+      </table>
+      <p id="empty-activity" class="hidden text-center text-gray-400 text-sm py-10">
+        Aucun résultat pour ces filtres
+      </p>
+    </div>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
+      <button id="btn-prev" class="px-4 py-1.5 border rounded-lg hover:bg-gray-50 disabled:opacity-40" disabled>
+        ← Précédent
+      </button>
+      <span id="pagination-info"></span>
+      <button id="btn-next" class="px-4 py-1.5 border rounded-lg hover:bg-gray-50 disabled:opacity-40">
+        Suivant →
+      </button>
+    </div>
+  </main>
+
+  <script src="js/activity.js"></script>
+</body>
+</html>

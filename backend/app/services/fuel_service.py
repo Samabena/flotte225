@@ -241,10 +241,18 @@ def list_owner_fuel_entries(db: Session, owner_id: int) -> list[FuelEntry]:
 
 # ── US-024: Owner views activity log ─────────────────────────────────────────
 
-def list_activity_logs(db: Session, owner_id: int) -> list[ActivityLog]:
-    return (
-        db.query(ActivityLog)
-        .filter(ActivityLog.owner_id == owner_id)
-        .order_by(ActivityLog.created_at.desc())
-        .all()
-    )
+def list_activity_logs(
+    db: Session,
+    owner_id: int,
+    driver_id: int | None = None,
+    vehicle_id: int | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[ActivityLog]:
+    """US-025 — filterable activity log."""
+    q = db.query(ActivityLog).filter(ActivityLog.owner_id == owner_id)
+    if driver_id is not None:
+        q = q.filter(ActivityLog.driver_id == driver_id)
+    if vehicle_id is not None:
+        q = q.filter(ActivityLog.vehicle_id == vehicle_id)
+    return q.order_by(ActivityLog.created_at.desc()).offset(offset).limit(limit).all()

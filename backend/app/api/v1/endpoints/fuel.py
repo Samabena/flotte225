@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_driver, get_current_owner
 from app.models.user import User
+from app.models.vehicle import Vehicle
 from app.schemas.fuel_entry import FuelEntryCreate, FuelEntryUpdate, FuelEntryResponse
 from app.schemas.activity_log import ActivityLogResponse
 from app.services import fuel_service
@@ -77,7 +78,30 @@ def list_fleet_fuel_entries(
 def list_fleet_activity_logs(
     owner: User = Depends(get_current_owner),
     db: Session = Depends(get_db),
+    driver_id: int | None = Query(default=None),
+    vehicle_id: int | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
 ):
-    """US-024 — Owner views audit log."""
-    logs = fuel_service.list_activity_logs(db, owner.id)
-    return _ok(data=[ActivityLogResponse.model_validate(log) for log in logs])
+    """US-024 / US-025 — Owner views filterable audit log with driver & vehicle names."""
+    logs = fuel_service.list_activity_logs(
+        db, owner.id, driver_id=driver_id, vehicle_id=vehicle_id, limit=limit, offset=offset
+    )
+    # Enrich with display names in one round-trip each
+    driver_ids = {log.driver_id for log in logs}
+    vehicle_ids = {log.vehicle_id for log in logs}
+    drivers_map = (
+        {u.id: u.full_name for u in db.query(User).filter(User.id.in_(driver_ids)).all()}
+        if driver_ids else {}
+    )
+    vehicles_map = (
+        {v.id: v.name for v in db.query(Vehicle).filter(Vehicle.id.in_(vehicle_ids)).all()}
+        if vehicle_ids else {}
+    )
+    result = []
+    for log in logs:
+        entry = ActivityLogResponse.model_validate(log).model_dump()
+        entry["driver_name"] = drivers_map.get(log.driver_id, "—")
+        entry["vehicle_name"] = vehicles_map.get(log.vehicle_id, "—")
+        result.append(entry)
+    return _ok(data=result)
