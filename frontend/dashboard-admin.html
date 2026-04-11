@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Administration — Flotte225</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            green: { DEFAULT: '#005F02', light: '#e6f0e6' },
+            gold: { DEFAULT: '#C0B87A', light: '#f7f4e8' },
+            cream: '#F2E3BB',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #F2E3BB; font-family: 'Inter', system-ui, sans-serif; }
+    .sidebar { background: #005F02; }
+    .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .badge-active   { background:#D1FAE5; color:#065F46; }
+    .badge-inactive { background:#FEE2E2; color:#DC2626; }
+    .badge-owner    { background:#EDE9FE; color:#5B21B6; }
+    .badge-driver   { background:#DBEAFE; color:#1D4ED8; }
+    .badge-admin    { background:#FEF3C7; color:#92400E; }
+    .tab-btn { border-bottom: 2px solid transparent; transition: border-color .2s; }
+    .tab-btn.active { border-color: #005F02; color: #005F02; font-weight: 600; }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="sidebar w-56 min-h-screen flex flex-col p-5 text-white shrink-0">
+    <div class="mb-8">
+      <span class="text-xl font-bold tracking-wide text-[#C0B87A]">Flotte225</span>
+      <p class="text-xs text-white/50 mt-1">Super Admin</p>
+    </div>
+    <nav class="flex flex-col gap-1 text-sm font-medium">
+      <a href="dashboard-admin.html" class="px-3 py-2 rounded-lg bg-white/10">Utilisateurs</a>
+    </nav>
+    <div class="mt-auto">
+      <button id="btn-logout" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">
+        Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 p-6 overflow-y-auto">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-[#005F02]">Gestion des utilisateurs</h1>
+      <span id="user-count" class="text-sm text-gray-500"></span>
+    </div>
+
+    <!-- Search & filter bar -->
+    <div class="card p-4 mb-4 flex flex-col sm:flex-row gap-3">
+      <input
+        id="search-input"
+        type="text"
+        placeholder="Rechercher par nom ou email…"
+        class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#005F02]/30"
+      />
+      <select
+        id="role-filter"
+        class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#005F02]/30"
+      >
+        <option value="">Tous les rôles</option>
+        <option value="OWNER">Propriétaires</option>
+        <option value="DRIVER">Chauffeurs</option>
+        <option value="SUPER_ADMIN">Admins</option>
+      </select>
+      <button
+        id="btn-search"
+        class="bg-[#005F02] text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-[#004a01] transition"
+      >
+        Filtrer
+      </button>
+    </div>
+
+    <!-- Users table -->
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50 text-left text-gray-500 border-b">
+            <tr>
+              <th class="px-4 py-3 font-medium">Nom</th>
+              <th class="px-4 py-3 font-medium">Email</th>
+              <th class="px-4 py-3 font-medium">Rôle</th>
+              <th class="px-4 py-3 font-medium">Statut</th>
+              <th class="px-4 py-3 font-medium">Inscrit le</th>
+              <th class="px-4 py-3 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr id="users-loading">
+              <td colspan="6" class="px-4 py-8 text-center text-gray-400">Chargement…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Fleet modal (US-039) -->
+  <div id="modal-fleet" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="card w-full max-w-lg p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-[#005F02]" id="modal-fleet-title">Flotte du propriétaire</h2>
+        <button id="modal-fleet-close" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+      </div>
+      <div id="modal-fleet-body" class="text-sm text-gray-700 max-h-80 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- Plan assignment modal (US-040) -->
+  <div id="modal-plan" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="card w-full max-w-sm p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-[#005F02]">Modifier le plan</h2>
+        <button id="modal-plan-close" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+      </div>
+      <p class="text-sm text-gray-500 mb-4" id="modal-plan-owner"></p>
+      <select
+        id="plan-select"
+        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-[#005F02]/30"
+      >
+        <option value="starter">Starter (gratuit)</option>
+        <option value="pro">Pro — 9 900 FCFA/mois</option>
+        <option value="business">Business — 24 900 FCFA/mois</option>
+      </select>
+      <div id="modal-plan-error" class="hidden text-red-600 text-xs mb-3"></div>
+      <div class="flex gap-2">
+        <button id="modal-plan-close2" class="flex-1 border border-gray-200 rounded-lg py-2 text-sm hover:bg-gray-50">
+          Annuler
+        </button>
+        <button id="btn-assign-plan" class="flex-1 bg-[#005F02] text-white rounded-lg py-2 text-sm font-medium hover:bg-[#004a01]">
+          Confirmer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm delete modal (US-038) -->
+  <div id="modal-delete" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="card w-full max-w-sm p-6">
+      <h2 class="font-bold text-red-600 mb-2">Supprimer le compte</h2>
+      <p class="text-sm text-gray-600 mb-5" id="modal-delete-msg"></p>
+      <div class="flex gap-2">
+        <button id="modal-delete-close" class="flex-1 border border-gray-200 rounded-lg py-2 text-sm hover:bg-gray-50">
+          Annuler
+        </button>
+        <button id="btn-confirm-delete" class="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-red-700">
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

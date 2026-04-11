@@ -1,4 +1,4 @@
-/* dashboard.js — Owner dashboard (Sprint 5) */
+/* dashboard.js — Owner dashboard (Sprint 5 + 6) */
 
 const API = '/api/v1';
 const token = () => localStorage.getItem('access_token');
@@ -12,6 +12,10 @@ if (!token()) {
 document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.clear();
   window.location.href = 'index.html';
+});
+
+document.getElementById('upgrade-modal-close').addEventListener('click', () => {
+  document.getElementById('modal-upgrade').classList.add('hidden');
 });
 
 // ── Fetch dashboard data ─────────────────────────────────────────────────────
@@ -33,9 +37,22 @@ async function loadDashboard() {
   renderKPIs(data);
   renderSpendByVehicle(data.financial.spend_per_vehicle);
   renderMonthlyTrend(data.financial.monthly_trend);
+  renderSpendDonut(data.financial.spend_per_vehicle);
   renderConsumption(data.consumption);
   renderDrivers(data.drivers);
   renderAlerts(data.alerts);
+}
+
+// ── Fetch plan usage (US-046) ────────────────────────────────────────────────
+async function loadPlanUsage() {
+  try {
+    const res = await fetch(`${API}/subscription/my-plan`, { headers: authHeader() });
+    if (!res.ok) return;
+    const json = await res.json();
+    renderPlanUsage(json.data);
+  } catch (e) {
+    // Plan section stays hidden on error
+  }
 }
 
 // ── KPI cards ────────────────────────────────────────────────────────────────
@@ -235,6 +252,112 @@ function renderAlerts(alerts) {
   }
 }
 
+// ── Donut: spend distribution (US-021) ───────────────────────────────────────
+function renderSpendDonut(spendData) {
+  const canvas = document.getElementById('chart-donut');
+  const empty  = document.getElementById('empty-donut');
+
+  if (!spendData || spendData.length === 0) {
+    canvas.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+
+  const labels = spendData.map(v => v.vehicle_name);
+  const values = spendData.map(v => parseFloat(v.spend_fcfa));
+  const palette = [
+    '#005F02', '#C0B87A', '#4CAF50', '#8BC34A', '#CDDC39',
+    '#FFC107', '#FF9800', '#795548', '#607D8B', '#9E9E9E',
+  ];
+  const colors = labels.map((_, i) => palette[i % palette.length]);
+
+  new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderWidth: 2,
+        borderColor: '#fff',
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      cutout: '62%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { boxWidth: 12, font: { size: 11 }, padding: 10 },
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.label}: ${parseFloat(ctx.raw).toLocaleString('fr-FR')} FCFA`,
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Plan usage gauges (US-046) ───────────────────────────────────────────────
+function renderPlanUsage(data) {
+  const { plan, active_vehicles, active_drivers, expires_at } = data;
+
+  document.getElementById('plan-badge').textContent = plan.name;
+
+  // Vehicles gauge
+  const maxV = plan.max_vehicles;
+  const vPct = maxV ? Math.min((active_vehicles / maxV) * 100, 100) : 0;
+  document.getElementById('plan-vehicles-label').textContent =
+    maxV ? `${active_vehicles} / ${maxV}` : `${active_vehicles} (illimité)`;
+  document.getElementById('plan-vehicles-bar').style.width = maxV ? `${vPct}%` : '0%';
+
+  // Drivers gauge
+  const maxD = plan.max_drivers;
+  const dPct = maxD ? Math.min((active_drivers / maxD) * 100, 100) : 0;
+  document.getElementById('plan-drivers-label').textContent =
+    maxD ? `${active_drivers} / ${maxD}` : `${active_drivers} (illimité)`;
+  document.getElementById('plan-drivers-bar').style.width = maxD ? `${dPct}%` : '0%';
+
+  // Expiry
+  if (expires_at) {
+    const expEl = document.getElementById('plan-expire');
+    expEl.textContent = `Expire le ${new Date(expires_at).toLocaleDateString('fr-FR')}`;
+    expEl.classList.remove('hidden');
+  }
+
+  // Show upgrade CTA for starter plan
+  if (plan.name === 'starter') {
+    document.getElementById('btn-upgrade').classList.remove('hidden');
+  }
+
+  // Wire upgrade button to upgrade modal
+  document.getElementById('btn-upgrade').addEventListener('click', showUpgradePrompt);
+}
+
+// ── Upgrade prompt (US-045) ──────────────────────────────────────────────────
+function showUpgradePrompt(msg) {
+  if (typeof msg === 'string') {
+    document.getElementById('upgrade-modal-msg').textContent = msg;
+  }
+  document.getElementById('modal-upgrade').classList.remove('hidden');
+}
+
+// Intercept plan-gated 403s and show upgrade modal
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, { ...options, headers: { ...authHeader(), ...(options.headers || {}) } });
+  if (res.status === 403) {
+    const json = await res.json().catch(() => ({}));
+    const detail = json.detail || '';
+    if (detail.toLowerCase().includes('abonnement') || detail.toLowerCase().includes('plan') || detail.toLowerCase().includes('limit')) {
+      showUpgradePrompt(detail);
+      return null;
+    }
+  }
+  return res;
+}
+
 // ── Tab switching ─────────────────────────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -258,3 +381,4 @@ function esc(str) {
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadDashboard();
+loadPlanUsage();
