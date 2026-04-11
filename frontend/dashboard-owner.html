@@ -42,6 +42,17 @@
       <a href="dashboard-owner.html" class="px-3 py-2 rounded-lg bg-white/10">Tableau de bord</a>
       <a href="activity.html" class="px-3 py-2 rounded-lg hover:bg-white/10">Journal d'activité</a>
     </nav>
+    <div class="mt-6 pt-6 border-t border-white/10 flex flex-col gap-1 text-sm">
+      <button id="btn-export-fuel-excel" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-[#C0B87A]" title="Exporter le carburant (Excel)">
+        Exporter carburant
+      </button>
+      <button id="btn-export-maint-pdf" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-[#C0B87A]" title="Exporter la maintenance (PDF)">
+        Exporter maintenance
+      </button>
+      <button id="btn-whatsapp-config" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-white/70">
+        Alertes WhatsApp
+      </button>
+    </div>
     <div class="mt-auto">
       <button id="btn-logout" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">
         Déconnexion
@@ -180,6 +191,29 @@
     </div>
 
   </main>
+
+  <!-- WhatsApp config modal (US-034) -->
+  <div id="modal-whatsapp" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-[#005F02]">Alertes WhatsApp</h2>
+        <button id="modal-wa-close" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Entrez votre numéro WhatsApp pour recevoir les alertes critiques de votre flotte.</p>
+      <input
+        id="wa-number-input"
+        type="tel"
+        placeholder="+225 07 00 00 00"
+        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#005F02]/30"
+      />
+      <div id="wa-error" class="hidden text-red-600 text-xs mb-3"></div>
+      <div id="wa-success" class="hidden text-green-700 text-xs mb-3">Numéro enregistré.</div>
+      <div class="flex gap-2">
+        <button id="modal-wa-close2" class="flex-1 border border-gray-200 rounded-lg py-2 text-sm hover:bg-gray-50">Annuler</button>
+        <button id="btn-save-whatsapp" class="flex-1 bg-[#005F02] text-white rounded-lg py-2 text-sm font-medium hover:bg-[#004a01]">Enregistrer</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Upgrade prompt modal (US-045) -->
   <div id="modal-upgrade" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

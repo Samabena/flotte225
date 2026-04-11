@@ -51,8 +51,16 @@
 
   <!-- Main -->
   <main class="flex-1 p-6 overflow-y-auto">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-[#005F02]">Gestion des utilisateurs</h1>
+    <!-- Tab nav -->
+    <div class="flex gap-4 border-b mb-6">
+      <button class="admin-tab active pb-2 text-sm font-medium border-b-2 border-[#005F02] text-[#005F02]" data-tab="users">Utilisateurs</button>
+      <button class="admin-tab pb-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-[#005F02]" data-tab="analytics">Analytique</button>
+    </div>
+
+    <!-- ── Users tab ── -->
+    <div id="tab-users">
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-xl font-bold text-[#005F02]">Gestion des utilisateurs</h1>
       <span id="user-count" class="text-sm text-gray-500"></span>
     </div>
 
@@ -104,6 +112,41 @@
       </div>
     </div>
   </main>
+
+    </div><!-- /tab-users -->
+
+    <!-- ── Analytics tab (US-041) ── -->
+    <div id="tab-analytics" class="hidden">
+      <h1 class="text-xl font-bold text-[#005F02] mb-4">Analytique plateforme</h1>
+
+      <!-- KPI cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card p-4">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Propriétaires</p>
+          <p class="text-2xl font-bold text-[#005F02]" id="an-owners">—</p>
+          <p class="text-xs text-gray-400 mt-1" id="an-new-owners"></p>
+        </div>
+        <div class="card p-4">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Chauffeurs</p>
+          <p class="text-2xl font-bold text-[#005F02]" id="an-drivers">—</p>
+        </div>
+        <div class="card p-4">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Véhicules actifs</p>
+          <p class="text-2xl font-bold text-[#005F02]" id="an-vehicles">—</p>
+        </div>
+        <div class="card p-4">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Dépense totale</p>
+          <p class="text-2xl font-bold text-[#005F02]" id="an-spend">—</p>
+        </div>
+      </div>
+
+      <!-- Plan distribution -->
+      <div class="card p-5 max-w-lg">
+        <p class="font-semibold text-gray-700 mb-3">Répartition des plans</p>
+        <div id="an-plans" class="flex flex-col gap-2 text-sm"></div>
+        <p id="an-plans-empty" class="hidden text-gray-400 text-sm">Aucune donnée</p>
+      </div>
+    </div><!-- /tab-analytics -->
 
   <!-- Fleet modal (US-039) -->
   <div id="modal-fleet" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

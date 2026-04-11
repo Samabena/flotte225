@@ -1,22 +1,25 @@
 """
-Admin & subscription endpoints — Sprint 6
+Admin & subscription endpoints — Sprint 6 + 7
   US-036  GET  /admin/users
   US-037  PATCH /admin/users/{id}/suspend | /reactivate
   US-038  DELETE /admin/users/{id}
   US-039  GET  /admin/users/{id}/fleet
   US-040  PUT  /admin/users/{id}/plan
+  US-041  GET  /admin/analytics
+  US-034  PATCH /owner/whatsapp
   US-046  GET  /subscription/my-plan
 """
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_admin_user, get_current_owner
 from app.models.user import User
 from app.schemas.admin import AssignPlanRequest, UserSummary
-from app.services import admin_service
+from app.services import admin_service, analytics_service
 
 router = APIRouter(tags=["admin"])
 
@@ -112,3 +115,33 @@ def my_plan(
     """US-046 — Owner views their current plan and resource usage."""
     data = admin_service.get_plan_usage(db, owner.id)
     return _ok(data=data)
+
+
+# ── US-041: Platform-wide analytics ──────────────────────────────────────────
+
+@router.get("/admin/analytics", response_model=None)
+def platform_analytics(
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """US-041 — Platform-wide analytics (super admin only)."""
+    data = analytics_service.get_platform_analytics(db)
+    return _ok(data=data)
+
+
+# ── US-034: Configure WhatsApp number ────────────────────────────────────────
+
+class WhatsAppConfigRequest(BaseModel):
+    whatsapp_number: str
+
+
+@router.patch("/owner/whatsapp", response_model=None)
+def configure_whatsapp(
+    body: WhatsAppConfigRequest,
+    owner: User = Depends(get_current_owner),
+    db: Session = Depends(get_db),
+):
+    """US-034 — Owner sets or updates their WhatsApp number for fleet alerts."""
+    owner.whatsapp_number = body.whatsapp_number.strip() or None
+    db.commit()
+    return _ok(message="Numéro WhatsApp mis à jour")

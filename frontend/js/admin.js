@@ -218,6 +218,70 @@ document.getElementById('btn-assign-plan').addEventListener('click', async () =>
   }
 });
 
+// ── US-041: Analytics tab ─────────────────────────────────────────────────────
+
+async function loadAnalytics() {
+  const res = await fetch(`${API}/admin/analytics`, { headers: authHeader() });
+  if (!res.ok) return;
+  const data = (await res.json()).data;
+
+  document.getElementById('an-owners').textContent = data.total_owners;
+  document.getElementById('an-drivers').textContent = data.total_drivers;
+  document.getElementById('an-vehicles').textContent = data.total_vehicles;
+  document.getElementById('an-spend').textContent =
+    data.total_spend_fcfa.toLocaleString('fr-FR') + ' FCFA';
+
+  const newEl = document.getElementById('an-new-owners');
+  if (data.new_owners_this_month > 0) {
+    newEl.textContent = `+${data.new_owners_this_month} ce mois-ci`;
+  }
+
+  const plansEl = document.getElementById('an-plans');
+  const plansEmpty = document.getElementById('an-plans-empty');
+  if (!data.plan_distribution || data.plan_distribution.length === 0) {
+    plansEmpty.classList.remove('hidden');
+    return;
+  }
+
+  const total = data.plan_distribution.reduce((s, p) => s + p.owner_count, 0);
+  const planColors = { starter: '#6B7280', pro: '#005F02', business: '#C0B87A' };
+
+  plansEl.innerHTML = data.plan_distribution.map(p => {
+    const pct = total ? Math.round((p.owner_count / total) * 100) : 0;
+    const color = planColors[p.plan_name] || '#005F02';
+    return `
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="font-medium capitalize">${esc(p.plan_name)}</span>
+          <span class="text-gray-500">${p.owner_count} owner${p.owner_count !== 1 ? 's' : ''} (${pct}%)</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+          <div class="h-2 rounded-full" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+
+document.querySelectorAll('.admin-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tab').forEach(b => {
+      b.classList.remove('active', 'border-[#005F02]', 'text-[#005F02]');
+      b.classList.add('border-transparent', 'text-gray-500');
+    });
+    btn.classList.add('active', 'border-[#005F02]', 'text-[#005F02]');
+    btn.classList.remove('border-transparent', 'text-gray-500');
+
+    document.getElementById('tab-users').classList.add('hidden');
+    document.getElementById('tab-analytics').classList.add('hidden');
+    const target = document.getElementById(`tab-${btn.dataset.tab}`);
+    target.classList.remove('hidden');
+
+    if (btn.dataset.tab === 'analytics') loadAnalytics();
+  });
+});
+
 // ── Search / filter controls ──────────────────────────────────────────────────
 
 const currentQ = () => document.getElementById('search-input').value.trim();

@@ -379,6 +379,69 @@ function esc(str) {
     .replace(/"/g, '&quot;');
 }
 
+// ── US-031: Export ────────────────────────────────────────────────────────────
+
+async function triggerExport(format, type, filename) {
+  const res = await apiFetch(`${API}/export?format=${format}&type=${type}`, { method: 'POST' });
+  if (!res) return; // plan-gated 403 already showed upgrade modal
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    alert(json.detail || 'Erreur lors de l\'export.');
+    return;
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btn-export-fuel-excel').addEventListener('click', () => {
+  triggerExport('excel', 'fuel', 'carburant.xlsx');
+});
+document.getElementById('btn-export-maint-pdf').addEventListener('click', () => {
+  triggerExport('pdf', 'maintenance', 'maintenance.pdf');
+});
+
+// ── US-034: WhatsApp config ────────────────────────────────────────────────────
+
+document.getElementById('btn-whatsapp-config').addEventListener('click', () => {
+  document.getElementById('wa-error').classList.add('hidden');
+  document.getElementById('wa-success').classList.add('hidden');
+  document.getElementById('modal-whatsapp').classList.remove('hidden');
+});
+
+['modal-wa-close', 'modal-wa-close2'].forEach(id => {
+  document.getElementById(id).addEventListener('click', () => {
+    document.getElementById('modal-whatsapp').classList.add('hidden');
+  });
+});
+
+document.getElementById('btn-save-whatsapp').addEventListener('click', async () => {
+  const number = document.getElementById('wa-number-input').value.trim();
+  const errEl = document.getElementById('wa-error');
+  const okEl = document.getElementById('wa-success');
+  errEl.classList.add('hidden');
+  okEl.classList.add('hidden');
+
+  const res = await fetch(`${API}/owner/whatsapp`, {
+    method: 'PATCH',
+    headers: { ...authHeader(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ whatsapp_number: number }),
+  });
+
+  if (res.ok) {
+    okEl.classList.remove('hidden');
+    setTimeout(() => document.getElementById('modal-whatsapp').classList.add('hidden'), 1200);
+  } else {
+    const json = await res.json().catch(() => ({}));
+    errEl.textContent = json.detail || 'Erreur lors de la mise à jour.';
+    errEl.classList.remove('hidden');
+  }
+});
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadDashboard();
 loadPlanUsage();
