@@ -1,11 +1,16 @@
 """
-APScheduler setup — Sprint 7
-  US-035  Daily WhatsApp alert dispatch for owners with critical fleet alerts
+APScheduler setup — Sprint 7 + Sprint 8
+  US-035  Daily WhatsApp alert dispatch
+  US-029  Periodic webhook dispatch (every WEBHOOK_INTERVAL_HOURS)
+  US-033  Scheduled AI reports (weekly / monthly per owner config)
 """
 import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from apscheduler.triggers.interval import IntervalTrigger
+
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +18,7 @@ scheduler = BackgroundScheduler(timezone="Africa/Abidjan")
 
 
 def _daily_whatsapp_alerts() -> None:
-    """
-    Daily job: for every active owner with a WhatsApp number, run the alert
-    engine and send a summary if any critical alerts are found.
-    """
+    """Daily job: send critical fleet alerts via WhatsApp to owners with a number set."""
     try:
         from app.core.database import SessionLocal
         from app.models.user import User
@@ -44,17 +46,69 @@ def _daily_whatsapp_alerts() -> None:
         logger.error("Daily WhatsApp alert job failed: %s", exc)
 
 
+def _webhook_dispatch() -> None:
+    """Periodic job: dispatch fleet summary webhook for all active owners."""
+    try:
+        from app.core.database import SessionLocal
+        from app.services.webhook_service import run_webhook_dispatch
+
+        db = SessionLocal()
+        try:
+            run_webhook_dispatch(db)
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.error("Webhook dispatch job failed: %s", exc)
+
+
+def _scheduled_ai_reports() -> None:
+    """Hourly job: generate and email AI reports for owners whose cadence has elapsed."""
+    try:
+        from app.core.database import SessionLocal
+        from app.services.ai_report_service import run_scheduled_reports
+
+        db = SessionLocal()
+        try:
+            run_scheduled_reports(db)
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.error("Scheduled AI reports job failed: %s", exc)
+
+
 def start_scheduler() -> None:
     if scheduler.running:
         return
+
+    # Daily WhatsApp alerts at 08:00 Africa/Abidjan
     scheduler.add_job(
         _daily_whatsapp_alerts,
         trigger=CronTrigger(hour=8, minute=0),
         id="daily_whatsapp_alerts",
         replace_existing=True,
     )
+
+    # Webhook dispatch every N hours (default 24)
+    scheduler.add_job(
+        _webhook_dispatch,
+        trigger=IntervalTrigger(hours=settings.WEBHOOK_INTERVAL_HOURS),
+        id="webhook_dispatch",
+        replace_existing=True,
+    )
+
+    # Scheduled AI reports — checked hourly, each owner's cadence enforced in the service
+    scheduler.add_job(
+        _scheduled_ai_reports,
+        trigger=CronTrigger(minute=30),  # :30 past every hour
+        id="scheduled_ai_reports",
+        replace_existing=True,
+    )
+
     scheduler.start()
-    logger.info("Scheduler started — daily WhatsApp alerts at 08:00 Africa/Abidjan")
+    logger.info(
+        "Scheduler started — WhatsApp@08:00, webhook every %sh, AI reports@:30",
+        settings.WEBHOOK_INTERVAL_HOURS,
+    )
 
 
 def stop_scheduler() -> None:

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rapports IA — Flotte225</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            green: { DEFAULT: '#005F02', light: '#e6f0e6' },
+            gold: { DEFAULT: '#C0B87A', light: '#f7f4e8' },
+            cream: '#F2E3BB',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #F2E3BB; font-family: 'Inter', system-ui, sans-serif; }
+    .sidebar { background: #005F02; }
+    .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .btn-primary { background: #005F02; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #004801; }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+    .badge-sent    { background: #D1FAE5; color: #065F46; }
+    .badge-failed  { background: #FEE2E2; color: #DC2626; }
+    .badge-locked  { background: #F3F4F6; color: #9CA3AF; }
+  </style>
+</head>
+<body class="min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="sidebar w-56 min-h-screen flex flex-col p-5 text-white shrink-0">
+    <div class="mb-8">
+      <span class="text-xl font-bold tracking-wide text-[#C0B87A]">Flotte225</span>
+    </div>
+    <nav class="flex flex-col gap-1 text-sm font-medium">
+      <a href="dashboard-owner.html" class="px-3 py-2 rounded-lg hover:bg-white/10">Tableau de bord</a>
+      <a href="activity.html" class="px-3 py-2 rounded-lg hover:bg-white/10">Journal d'activité</a>
+      <a href="reports.html" class="px-3 py-2 rounded-lg bg-white/10">Rapports IA</a>
+    </nav>
+    <div class="mt-auto">
+      <button id="btn-logout" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">
+        Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 p-8 overflow-y-auto">
+    <div class="max-w-3xl mx-auto space-y-6">
+
+      <!-- Header -->
+      <div>
+        <h1 class="text-2xl font-bold text-[#005F02]">Rapports IA</h1>
+        <p class="text-sm text-gray-500 mt-1">Obtenez un résumé clair de votre flotte en français, généré par intelligence artificielle.</p>
+      </div>
+
+      <!-- Plan badge -->
+      <div id="plan-banner" class="hidden rounded-lg px-4 py-3 text-sm font-medium"></div>
+
+      <!-- On-demand card -->
+      <div class="card p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800">Rapport à la demande</h2>
+            <p class="text-sm text-gray-500 mt-1">
+              Générez un rapport immédiatement. Il vous sera envoyé par email.
+            </p>
+            <p id="quota-label" class="text-sm text-gray-400 mt-1 hidden"></p>
+          </div>
+          <div class="shrink-0">
+            <span id="badge-plan-ondemand" class="text-xs px-2 py-1 rounded-full badge-locked font-semibold">Starter</span>
+          </div>
+        </div>
+
+        <div id="ondemand-locked" class="hidden mt-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+          Les rapports IA sont disponibles dès le <strong>Plan Pro</strong>.
+          Contactez votre administrateur pour mettre à niveau votre abonnement.
+        </div>
+
+        <div id="ondemand-available" class="mt-4 hidden">
+          <button
+            id="btn-generate"
+            class="btn-primary rounded-lg px-5 py-2 text-sm font-semibold transition-colors"
+          >
+            Générer un rapport
+          </button>
+          <p id="generate-feedback" class="text-sm mt-2 hidden"></p>
+        </div>
+      </div>
+
+      <!-- Scheduled reports card -->
+      <div class="card p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800">Rapports planifiés</h2>
+            <p class="text-sm text-gray-500 mt-1">
+              Recevez automatiquement un rapport selon votre fréquence choisie.
+            </p>
+          </div>
+          <div class="shrink-0">
+            <span id="badge-plan-scheduled" class="text-xs px-2 py-1 rounded-full badge-locked font-semibold">Business</span>
+          </div>
+        </div>
+
+        <div id="scheduled-locked" class="hidden mt-4 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+          Les rapports planifiés nécessitent le <strong>Plan Business</strong>.
+          Contactez votre administrateur pour mettre à niveau votre abonnement.
+        </div>
+
+        <div id="scheduled-available" class="mt-4 hidden space-y-4">
+          <div class="flex items-center gap-3">
+            <label class="inline-flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="sched-enabled" class="w-4 h-4 rounded accent-[#005F02]" />
+              <span class="text-sm font-medium text-gray-700">Activer les rapports planifiés</span>
+            </label>
+          </div>
+
+          <div id="sched-frequency-row" class="hidden flex items-center gap-3">
+            <label class="text-sm text-gray-600 w-24">Fréquence :</label>
+            <select id="sched-frequency" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#005F02] outline-none">
+              <option value="weekly">Hebdomadaire</option>
+              <option value="monthly">Mensuel</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <button id="btn-save-schedule" class="btn-primary rounded-lg px-5 py-2 text-sm font-semibold transition-colors">
+              Enregistrer
+            </button>
+            <p id="schedule-feedback" class="text-sm hidden"></p>
+          </div>
+
+          <!-- Last status -->
+          <div id="sched-status" class="hidden text-sm text-gray-500">
+            Dernier rapport planifié : <span id="sched-last-sent">—</span>
+            <span id="sched-last-badge" class="ml-2 text-xs px-2 py-0.5 rounded-full"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Webhook card -->
+      <div class="card p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800">Intégration Webhook</h2>
+            <p class="text-sm text-gray-500 mt-1">
+              Un résumé de flotte est automatiquement envoyé à votre outil externe toutes les 24h.
+            </p>
+          </div>
+          <div id="webhook-status-dot" class="w-3 h-3 rounded-full bg-gray-300 mt-1 shrink-0" title="Non configuré"></div>
+        </div>
+
+        <div id="webhook-unconfigured" class="hidden mt-4 rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-500">
+          Aucune URL webhook n'est configurée sur ce serveur. Contactez votre administrateur.
+        </div>
+
+        <div id="webhook-configured" class="mt-4 hidden space-y-3">
+          <div class="text-sm text-gray-600">
+            <span class="font-medium">Dernier envoi :</span>
+            <span id="webhook-last-sent">—</span>
+          </div>
+          <div class="text-sm text-gray-600">
+            <span class="font-medium">Statut HTTP :</span>
+            <span id="webhook-last-status">—</span>
+          </div>
+          <button id="btn-trigger-webhook" class="btn-primary rounded-lg px-5 py-2 text-sm font-semibold transition-colors">
+            Envoyer maintenant
+          </button>
+          <p id="webhook-feedback" class="text-sm hidden"></p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="js/reports.js"></script>
+</body>
+</html>
