@@ -24,7 +24,7 @@ services:
       - key: SENDGRID_API_KEY
         sync: false
       - key: SENDGRID_FROM_EMAIL
-        value: noreply@flotte225.ci
+        sync: false
       # AI Reports (OpenRouter)
       - key: OPENROUTER_API_KEY
         sync: false
