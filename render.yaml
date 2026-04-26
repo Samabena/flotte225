@@ -1,0 +1,56 @@
+services:
+  # ── Backend (FastAPI) ────────────────────────────────────────────────────────
+  - type: web
+    name: flotte225-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # paste your Neon connection string in the Render dashboard
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: SHOW_DOCS
+        value: false
+      - key: CORS_ORIGINS
+        value: https://flotte225-frontend.onrender.com
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 1440
+      # SendGrid
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: SENDGRID_FROM_EMAIL
+        value: noreply@flotte225.ci
+      # AI Reports (OpenRouter)
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: mistralai/mistral-large
+      # WhatsApp (Meta Cloud API)
+      - key: WHATSAPP_API_URL
+        sync: false
+      - key: WHATSAPP_TOKEN
+        sync: false
+      # Webhook
+      - key: WEBHOOK_URL
+        sync: false
+      - key: WEBHOOK_INTERVAL_HOURS
+        value: 24
+
+  # ── Frontend (Static Site) ───────────────────────────────────────────────────
+  - type: web
+    name: flotte225-frontend
+    runtime: static
+    staticPublishPath: ./frontend
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
