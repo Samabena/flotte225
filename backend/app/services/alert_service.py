@@ -6,7 +6,8 @@ US-026: Insurance / inspection expiry alerts (date-based)
 US-027: Consumption anomaly (>20% deviation from vehicle average)
 US-028: Monthly cost spike (current month >30% above last month)
 """
-from datetime import date, datetime, timezone
+
+from datetime import date
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 
@@ -18,20 +19,26 @@ from app.schemas.alert import AlertResponse
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _days_until(d: date) -> int:
     return (d - date.today()).days
 
 
 def _latest_odometer(db: Session, vehicle_id: int) -> int | None:
-    result = db.query(func.max(FuelEntry.odometer_km)).filter(
-        FuelEntry.vehicle_id == vehicle_id
-    ).scalar()
+    result = (
+        db.query(func.max(FuelEntry.odometer_km))
+        .filter(FuelEntry.vehicle_id == vehicle_id)
+        .scalar()
+    )
     return result
 
 
 # ── US-026: Compliance date alerts ───────────────────────────────────────────
 
-def _compliance_alerts(vehicle: Vehicle, record: Maintenance | None) -> list[AlertResponse]:
+
+def _compliance_alerts(
+    vehicle: Vehicle, record: Maintenance | None
+) -> list[AlertResponse]:
     if record is None:
         return []
     alerts: list[AlertResponse] = []
@@ -44,31 +51,38 @@ def _compliance_alerts(vehicle: Vehicle, record: Maintenance | None) -> list[Ale
             continue
         days = _days_until(field)
         if days < 0:
-            alerts.append(AlertResponse(
-                vehicle_id=vehicle.id,
-                vehicle_name=vehicle.name,
-                license_plate=vehicle.license_plate,
-                type=alert_type,
-                severity="critical",
-                message=f"{label.capitalize()} expirée",
-                detail=f"Expirée depuis {abs(days)} jour(s) (le {field})",
-            ))
+            alerts.append(
+                AlertResponse(
+                    vehicle_id=vehicle.id,
+                    vehicle_name=vehicle.name,
+                    license_plate=vehicle.license_plate,
+                    type=alert_type,
+                    severity="critical",
+                    message=f"{label.capitalize()} expirée",
+                    detail=f"Expirée depuis {abs(days)} jour(s) (le {field})",
+                )
+            )
         elif days <= 30:
-            alerts.append(AlertResponse(
-                vehicle_id=vehicle.id,
-                vehicle_name=vehicle.name,
-                license_plate=vehicle.license_plate,
-                type=alert_type,
-                severity="warning",
-                message=f"{label.capitalize()} bientôt expirée",
-                detail=f"Expire dans {days} jour(s) (le {field})",
-            ))
+            alerts.append(
+                AlertResponse(
+                    vehicle_id=vehicle.id,
+                    vehicle_name=vehicle.name,
+                    license_plate=vehicle.license_plate,
+                    type=alert_type,
+                    severity="warning",
+                    message=f"{label.capitalize()} bientôt expirée",
+                    detail=f"Expire dans {days} jour(s) (le {field})",
+                )
+            )
     return alerts
 
 
 # ── US-016: Oil change alert ──────────────────────────────────────────────────
 
-def _oil_change_alert(db: Session, vehicle: Vehicle, record: Maintenance | None) -> AlertResponse | None:
+
+def _oil_change_alert(
+    db: Session, vehicle: Vehicle, record: Maintenance | None
+) -> AlertResponse | None:
     if record is None or record.last_oil_change_km is None:
         return None
     latest = _latest_odometer(db, vehicle.id)
@@ -84,17 +98,23 @@ def _oil_change_alert(db: Session, vehicle: Vehicle, record: Maintenance | None)
         license_plate=vehicle.license_plate,
         type="oil_change",
         severity=severity,
-        message="Vidange requise" if severity == "critical" else "Vidange bientôt requise",
+        message=(
+            "Vidange requise" if severity == "critical" else "Vidange bientôt requise"
+        ),
         detail=f"{km_since} km parcourus depuis la dernière vidange (seuil : 500 km)",
     )
 
 
 # ── US-027: Consumption anomaly ───────────────────────────────────────────────
 
+
 def _consumption_anomaly(db: Session, vehicle: Vehicle) -> AlertResponse | None:
     entries = (
         db.query(FuelEntry)
-        .filter(FuelEntry.vehicle_id == vehicle.id, FuelEntry.consumption_per_100km.isnot(None))
+        .filter(
+            FuelEntry.vehicle_id == vehicle.id,
+            FuelEntry.consumption_per_100km.isnot(None),
+        )
         .order_by(FuelEntry.created_at.asc())
         .all()
     )
@@ -123,6 +143,7 @@ def _consumption_anomaly(db: Session, vehicle: Vehicle) -> AlertResponse | None:
 
 # ── US-028: Monthly cost spike ────────────────────────────────────────────────
 
+
 def _cost_spike(db: Session, vehicle: Vehicle) -> AlertResponse | None:
     today = date.today()
     current_month = today.month
@@ -131,11 +152,15 @@ def _cost_spike(db: Session, vehicle: Vehicle) -> AlertResponse | None:
     last_year = current_year if current_month > 1 else current_year - 1
 
     def _month_total(year: int, month: int) -> float:
-        result = db.query(func.sum(FuelEntry.amount_fcfa)).filter(
-            FuelEntry.vehicle_id == vehicle.id,
-            extract("year", FuelEntry.date) == year,
-            extract("month", FuelEntry.date) == month,
-        ).scalar()
+        result = (
+            db.query(func.sum(FuelEntry.amount_fcfa))
+            .filter(
+                FuelEntry.vehicle_id == vehicle.id,
+                extract("year", FuelEntry.date) == year,
+                extract("month", FuelEntry.date) == month,
+            )
+            .scalar()
+        )
         return float(result) if result else 0.0
 
     current_total = _month_total(current_year, current_month)
@@ -159,6 +184,7 @@ def _cost_spike(db: Session, vehicle: Vehicle) -> AlertResponse | None:
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
+
 def compute_alerts(db: Session, owner_id: int) -> list[AlertResponse]:
     vehicles = (
         db.query(Vehicle)
@@ -168,7 +194,9 @@ def compute_alerts(db: Session, owner_id: int) -> list[AlertResponse]:
 
     alerts: list[AlertResponse] = []
     for vehicle in vehicles:
-        record = db.query(Maintenance).filter(Maintenance.vehicle_id == vehicle.id).first()
+        record = (
+            db.query(Maintenance).filter(Maintenance.vehicle_id == vehicle.id).first()
+        )
 
         alerts.extend(_compliance_alerts(vehicle, record))
 

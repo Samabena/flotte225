@@ -7,6 +7,7 @@ Admin & subscription service — Sprint 6
   US-040  Manage subscription plan per owner
   US-046  Owner views current plan & usage
 """
+
 from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
@@ -31,10 +32,13 @@ from app.schemas.admin import (
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _get_user_or_404(db: Session, user_id: int) -> User:
     user = db.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable"
+        )
     return user
 
 
@@ -50,7 +54,10 @@ def _get_plan_by_name(db: Session, plan_name: str) -> SubscriptionPlan:
 
 # ── US-036: List / search users ───────────────────────────────────────────────
 
-def list_users(db: Session, q: str | None = None, role: str | None = None) -> list[User]:
+
+def list_users(
+    db: Session, q: str | None = None, role: str | None = None
+) -> list[User]:
     query = db.query(User)
     if role:
         query = query.filter(User.role == role.upper())
@@ -61,6 +68,7 @@ def list_users(db: Session, q: str | None = None, role: str | None = None) -> li
 
 
 # ── US-037: Suspend / reactivate ──────────────────────────────────────────────
+
 
 def suspend_user(db: Session, admin: User, user_id: int) -> User:
     user = _get_user_or_404(db, user_id)
@@ -78,7 +86,9 @@ def suspend_user(db: Session, admin: User, user_id: int) -> User:
 def reactivate_user(db: Session, admin: User, user_id: int) -> User:
     user = _get_user_or_404(db, user_id)
     if user.role == "SUPER_ADMIN":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Action non autorisée")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Action non autorisée"
+        )
     user.is_active = True
     db.commit()
     db.refresh(user)
@@ -86,6 +96,7 @@ def reactivate_user(db: Session, admin: User, user_id: int) -> User:
 
 
 # ── US-038: Permanently delete ────────────────────────────────────────────────
+
 
 def delete_user(db: Session, admin: User, user_id: int) -> None:
     user = _get_user_or_404(db, user_id)
@@ -105,22 +116,23 @@ def delete_user(db: Session, admin: User, user_id: int) -> None:
 
     if user.role == "OWNER":
         vehicle_ids = [
-            row[0] for row in db.query(Vehicle.id).filter(Vehicle.owner_id == user_id).all()
+            row[0]
+            for row in db.query(Vehicle.id).filter(Vehicle.owner_id == user_id).all()
         ]
         if vehicle_ids:
             # Activity logs reference vehicle_id (NOT NULL, no CASCADE)
-            db.query(ActivityLog).filter(ActivityLog.vehicle_id.in_(vehicle_ids)).delete(
-                synchronize_session=False
-            )
+            db.query(ActivityLog).filter(
+                ActivityLog.vehicle_id.in_(vehicle_ids)
+            ).delete(synchronize_session=False)
             db.query(FuelEntry).filter(FuelEntry.vehicle_id.in_(vehicle_ids)).delete(
                 synchronize_session=False
             )
-            db.query(VehicleDriver).filter(VehicleDriver.vehicle_id.in_(vehicle_ids)).delete(
-                synchronize_session=False
-            )
-            db.query(Maintenance).filter(Maintenance.vehicle_id.in_(vehicle_ids)).delete(
-                synchronize_session=False
-            )
+            db.query(VehicleDriver).filter(
+                VehicleDriver.vehicle_id.in_(vehicle_ids)
+            ).delete(synchronize_session=False)
+            db.query(Maintenance).filter(
+                Maintenance.vehicle_id.in_(vehicle_ids)
+            ).delete(synchronize_session=False)
             # Nullify active_vehicle_id for drivers still linked to these vehicles
             db.query(User).filter(User.active_vehicle_id.in_(vehicle_ids)).update(
                 {"active_vehicle_id": None, "driving_status": False},
@@ -133,7 +145,9 @@ def delete_user(db: Session, admin: User, user_id: int) -> None:
         db.query(ActivityLog).filter(ActivityLog.owner_id == user_id).delete(
             synchronize_session=False
         )
-        db.query(OwnerSubscription).filter(OwnerSubscription.owner_id == user_id).delete()
+        db.query(OwnerSubscription).filter(
+            OwnerSubscription.owner_id == user_id
+        ).delete()
 
     elif user.role == "DRIVER":
         # Nullify the driver's active vehicle reference before deleting
@@ -148,6 +162,7 @@ def delete_user(db: Session, admin: User, user_id: int) -> None:
 
 
 # ── US-039: View any owner's fleet ───────────────────────────────────────────
+
 
 def get_owner_fleet(db: Session, owner_id: int) -> OwnerFleetResponse:
     owner = _get_user_or_404(db, owner_id)
@@ -172,7 +187,10 @@ def get_owner_fleet(db: Session, owner_id: int) -> OwnerFleetResponse:
 
 # ── US-040: Assign plan to owner ──────────────────────────────────────────────
 
-def assign_plan(db: Session, admin: User, owner_id: int, body: AssignPlanRequest) -> None:
+
+def assign_plan(
+    db: Session, admin: User, owner_id: int, body: AssignPlanRequest
+) -> None:
     owner = _get_user_or_404(db, owner_id)
     if owner.role != "OWNER":
         raise HTTPException(
@@ -181,7 +199,11 @@ def assign_plan(db: Session, admin: User, owner_id: int, body: AssignPlanRequest
         )
     plan = _get_plan_by_name(db, body.plan_name)
 
-    sub = db.query(OwnerSubscription).filter(OwnerSubscription.owner_id == owner_id).first()
+    sub = (
+        db.query(OwnerSubscription)
+        .filter(OwnerSubscription.owner_id == owner_id)
+        .first()
+    )
     if sub:
         sub.plan_id = plan.id
         sub.started_at = datetime.now(timezone.utc)
@@ -203,10 +225,13 @@ def assign_plan(db: Session, admin: User, owner_id: int, body: AssignPlanRequest
 
 # ── US-046: Owner views plan + usage ─────────────────────────────────────────
 
+
 def get_plan_usage(db: Session, owner_id: int) -> PlanUsageResponse:
     sub = (
         db.query(OwnerSubscription)
-        .filter(OwnerSubscription.owner_id == owner_id, OwnerSubscription.is_active == True)
+        .filter(
+            OwnerSubscription.owner_id == owner_id, OwnerSubscription.is_active.is_(True)
+        )
         .first()
     )
     if not sub:

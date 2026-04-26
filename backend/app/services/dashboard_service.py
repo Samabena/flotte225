@@ -29,6 +29,7 @@ def get_dashboard_data(db: Session, owner_id: int) -> DashboardResponse:
 
 # ── Financial ─────────────────────────────────────────────────────────────────
 
+
 def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
     total = (
         db.query(func.coalesce(func.sum(FuelEntry.amount_fcfa), 0))
@@ -38,7 +39,9 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
     )
 
     spend_rows = (
-        db.query(Vehicle.id, Vehicle.name, func.sum(FuelEntry.amount_fcfa).label("spend"))
+        db.query(
+            Vehicle.id, Vehicle.name, func.sum(FuelEntry.amount_fcfa).label("spend")
+        )
         .join(FuelEntry, FuelEntry.vehicle_id == Vehicle.id)
         .filter(Vehicle.owner_id == owner_id)
         .group_by(Vehicle.id, Vehicle.name)
@@ -46,7 +49,9 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
         .all()
     )
     spend_per_vehicle = [
-        VehicleSpend(vehicle_id=r.id, vehicle_name=r.name, spend_fcfa=Decimal(str(r.spend or 0)))
+        VehicleSpend(
+            vehicle_id=r.id, vehicle_name=r.name, spend_fcfa=Decimal(str(r.spend or 0))
+        )
         for r in spend_rows
     ]
 
@@ -82,7 +87,10 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
 
 # ── Consumption ───────────────────────────────────────────────────────────────
 
-def _get_consumption_indicators(db: Session, owner_id: int) -> list[ConsumptionIndicator]:
+
+def _get_consumption_indicators(
+    db: Session, owner_id: int
+) -> list[ConsumptionIndicator]:
     rows = (
         db.query(
             Vehicle.id,
@@ -119,6 +127,7 @@ def _get_consumption_indicators(db: Session, owner_id: int) -> list[ConsumptionI
 
 # ── Drivers ───────────────────────────────────────────────────────────────────
 
+
 def _get_driver_statuses(db: Session, owner_id: int) -> list[DriverStatus]:
     driver_id_rows = (
         db.query(VehicleDriver.driver_id)
@@ -145,7 +154,9 @@ def _get_driver_statuses(db: Session, owner_id: int) -> list[DriverStatus]:
             full_name=d.full_name,
             driving_status=d.driving_status,
             active_vehicle_id=d.active_vehicle_id,
-            active_vehicle_name=vehicles_map.get(d.active_vehicle_id) if d.active_vehicle_id else None,
+            active_vehicle_name=(
+                vehicles_map.get(d.active_vehicle_id) if d.active_vehicle_id else None
+            ),
         )
         for d in drivers
     ]

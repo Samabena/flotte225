@@ -36,18 +36,26 @@ users ────────────────────────�
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
 | id | SERIAL | PK | |
-| company_name | VARCHAR(255) | NOT NULL | |
+| company_name | VARCHAR(255) | NULLABLE | OWNER only; NULL for DRIVER rows |
 | full_name | VARCHAR(255) | NOT NULL | |
-| email | VARCHAR(255) | UNIQUE, NOT NULL | Login identifier |
+| email | VARCHAR(255) | UNIQUE, NULLABLE | OWNER/SUPER_ADMIN login identifier; NULL for DRIVER rows |
+| username | VARCHAR(100) | UNIQUE, NULLABLE | DRIVER login identifier; NULL for OWNER/SUPER_ADMIN rows |
 | password_hash | VARCHAR(255) | NOT NULL | bcrypt |
 | role | VARCHAR(20) | NOT NULL | `OWNER` / `DRIVER` / `SUPER_ADMIN` |
-| is_active | BOOLEAN | NOT NULL, DEFAULT false | false until email verified |
+| owner_id | INT | FK → users.id, NULLABLE | DRIVER only: the OWNER who created this account |
+| is_active | BOOLEAN | NOT NULL, DEFAULT false | OWNER: false until email verified; DRIVER: true on creation |
 | is_suspended | BOOLEAN | NOT NULL, DEFAULT false | Set by SUPER_ADMIN |
+| is_disabled | BOOLEAN | NOT NULL, DEFAULT false | DRIVER only: set by their OWNER to block login |
 | driving_status | BOOLEAN | NOT NULL, DEFAULT false | DRIVER: currently on mission |
 | active_vehicle_id | INT | FK → vehicles.id, NULLABLE | DRIVER: current vehicle |
 | whatsapp_number | VARCHAR(20) | NULLABLE | OWNER: for WA notifications |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+> **Added in feature: Owner-Managed Driver Access Control** — 2026-04-19
+> `username` and `owner_id` columns support username-based login and owner-scoped driver isolation.
+> `is_disabled` allows owners to block driver login without deleting the account.
+> CONSTRAINT: a row must have either `email` OR `username` set, never both.
 
 ---
 

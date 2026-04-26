@@ -8,12 +8,18 @@ from app.schemas.maintenance import MaintenanceUpdate
 
 
 def _get_vehicle_or_404(db: Session, owner_id: int, vehicle_id: int) -> Vehicle:
-    vehicle = db.query(Vehicle).filter(
-        Vehicle.id == vehicle_id,
-        Vehicle.owner_id == owner_id,
-    ).first()
+    vehicle = (
+        db.query(Vehicle)
+        .filter(
+            Vehicle.id == vehicle_id,
+            Vehicle.owner_id == owner_id,
+        )
+        .first()
+    )
     if not vehicle:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Véhicule introuvable")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Véhicule introuvable"
+        )
     return vehicle
 
 
@@ -29,6 +35,7 @@ def _get_or_create_record(db: Session, vehicle_id: int) -> Maintenance:
 
 # ── US-015: Get maintenance record ────────────────────────────────────────────
 
+
 def get_maintenance(db: Session, owner_id: int, vehicle_id: int) -> Maintenance:
     _get_vehicle_or_404(db, owner_id, vehicle_id)
     return _get_or_create_record(db, vehicle_id)
@@ -36,7 +43,10 @@ def get_maintenance(db: Session, owner_id: int, vehicle_id: int) -> Maintenance:
 
 # ── US-015: Update maintenance record ────────────────────────────────────────
 
-def update_maintenance(db: Session, owner_id: int, vehicle_id: int, data: MaintenanceUpdate) -> Maintenance:
+
+def update_maintenance(
+    db: Session, owner_id: int, vehicle_id: int, data: MaintenanceUpdate
+) -> Maintenance:
     _get_vehicle_or_404(db, owner_id, vehicle_id)
     record = _get_or_create_record(db, vehicle_id)
 

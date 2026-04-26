@@ -4,9 +4,11 @@ from pydantic import BaseModel
 
 # ── User list / detail (US-036) ───────────────────────────────────────────────
 
+
 class UserSummary(BaseModel):
     id: int
-    email: str
+    email: str | None
+    username: str | None = None
     full_name: str
     role: str
     is_active: bool
@@ -18,12 +20,14 @@ class UserSummary(BaseModel):
 
 # ── Plan assignment (US-040) ─────────────────────────────────────────────────
 
+
 class AssignPlanRequest(BaseModel):
-    plan_name: str           # starter | pro | business
+    plan_name: str  # starter | pro | business
     expires_at: datetime | None = None
 
 
 # ── Fleet view (US-039) ──────────────────────────────────────────────────────
+
 
 class AdminVehicleSummary(BaseModel):
     id: int
@@ -44,6 +48,7 @@ class OwnerFleetResponse(BaseModel):
 
 
 # ── Plan usage (US-046) ──────────────────────────────────────────────────────
+
 
 class PlanDetails(BaseModel):
     name: str

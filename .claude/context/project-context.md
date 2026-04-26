@@ -1,5 +1,5 @@
 # Flotte225 — Project Context
-*Last updated: 2026-04-12 — All 8 sprints complete. 185 tests passing. Full frontend built.*
+*Last updated: 2026-04-26 — Sprint 10 (alert emails) complete. 217 tests passing. Staging deployment is next.*
 *Purpose: Read this file at the start of any new conversation to understand the full project state.*
 
 ---
@@ -10,12 +10,12 @@
 
 ---
 
-## SDLC Phase: Development Complete — All 8 sprints shipped
+## SDLC Phase: Development Complete — All 9 sprints shipped
 
 | Phase | Status |
 |-------|--------|
 | SRS | ✅ Complete — `docs/FULL-SRS.md` |
-| Product Backlog | ✅ Complete — `docs/backlog/PRODUCT-BACKLOG.md` (46 stories, 8 sprints) |
+| Product Backlog | ✅ Complete — `docs/backlog/PRODUCT-BACKLOG.md` (49 stories, 9 sprints) |
 | System Design | ✅ Complete — `docs/design/FULL-DESIGN.md` (7 sections) |
 | Sprint 1 — Auth + Plan Infrastructure | ✅ Complete — 18 tests |
 | Sprint 2 — Vehicle Management | ✅ Complete — 28 tests |
@@ -24,9 +24,11 @@
 | Sprint 5 — Owner Dashboard | ✅ Complete — dashboard-owner.html + dashboard.js |
 | Sprint 6 — Super Admin & Subscription UI | ✅ Complete — dashboard-admin.html + admin.js |
 | Sprint 7 — Export, WhatsApp & Analytics | ✅ Complete — export, WhatsApp, admin analytics |
-| Sprint 8 — AI Reports & Webhook | ✅ Complete — reports.html + reports.js, 185 tests total |
+| Sprint 8 — AI Reports & Webhook | ✅ Complete — reports.html + reports.js |
+| Sprint 9 — Driver Access Management | ✅ Complete — US-047, US-048, US-049 — 203 tests total |
+| Sprint 10 — Alert Email Notifications | ✅ Complete — instant alert email + daily 22:00 digest — 217 tests total |
 
-**Next phase:** Staging deployment — run migration 005, set new env vars, smoke test.
+**Next phase:** Staging deployment on Render.
 
 ---
 
@@ -92,6 +94,7 @@ FlotteApp/
 │   │   │       ├── auth.py                 ← /register /verify-email /login /forgot-password /reset-password
 │   │   │       ├── vehicles.py             ← /vehicles CRUD + pause/resume/archive/restore + driver assignment
 │   │   │       ├── driver.py               ← /driver/vehicles /driver/activate /driver/deactivate
+│   │   │       ├── drivers.py              ← /drivers CRUD (owner-managed: create/list/disable/reset-pw/delete)
 │   │   │       ├── fuel.py                 ← /fuel (driver CRUD) + /owner/fuel-entries + /owner/activity-logs
 │   │   │       └── maintenance.py          ← /vehicles/{id}/maintenance + /owner/alerts
 │   │   ├── core/
@@ -109,19 +112,22 @@ FlotteApp/
 │   │   │   ├── activity_log.py             ← ActivityLog (action, data_before/after JSONB)
 │   │   │   └── maintenance.py              ← Maintenance (last_oil_change_km, insurance_expiry, inspection_expiry)
 │   │   ├── schemas/
-│   │   │   ├── auth.py
-│   │   │   ├── vehicle.py
+│   │   │   ├── auth.py                     ← RegisterRequest (OWNER only), LoginRequest (identifier field)
+│   │   │   ├── vehicle.py                  ← DriverSummary.email nullable (drivers have no email)
 │   │   │   ├── fuel_entry.py
 │   │   │   ├── activity_log.py
 │   │   │   ├── alert.py                    ← AlertResponse (vehicle_id, type, severity, message, detail)
-│   │   │   └── maintenance.py
+│   │   │   ├── maintenance.py
+│   │   │   ├── admin.py                    ← UserSummary.email nullable
+│   │   │   └── driver_mgmt.py              ← DriverCreate, DriverStatusUpdate, DriverPasswordReset, DriverResponse
 │   │   └── services/
-│   │       ├── auth_service.py
+│   │       ├── auth_service.py             ← dual-mode login (@ → email, no @ → username)
 │   │       ├── email_service.py            ← SendGrid wrapper (non-blocking)
-│   │       ├── vehicle_service.py
+│   │       ├── vehicle_service.py          ← _get_driver_or_400 checks owner_id isolation
 │   │       ├── fuel_service.py             ← fuel CRUD + consumption_per_100km calc + activity log writes
 │   │       ├── maintenance_service.py      ← get/update maintenance record (auto-creates if missing)
-│   │       └── alert_service.py            ← compute_alerts() → compliance + oil change + anomaly + spike
+│   │       ├── alert_service.py            ← compute_alerts() → compliance + oil change + anomaly + spike
+│   │       └── driver_mgmt_service.py      ← create/list/disable/reset-pw/remove driver (owner-scoped)
 │   ├── scripts/
 │   │   └── seed.py                         ← seeds 3 plans + SUPER_ADMIN (run once after migration)
 │   ├── tests/
@@ -129,13 +135,20 @@ FlotteApp/
 │   │   ├── test_auth.py                    ← 18 tests: US-001–004, US-042–044
 │   │   ├── test_vehicles.py                ← 28 tests: US-005–009, US-022–023
 │   │   ├── test_fuel.py                    ← 21 tests: US-010–014, US-024
-│   │   └── test_maintenance.py             ← 21 tests: US-015–016, US-026–028
+│   │   ├── test_maintenance.py             ← 21 tests: US-015–016, US-026–028
+│   │   ├── test_dashboard.py               ← US-017–020, US-025
+│   │   ├── test_admin.py                   ← US-036–041, US-045–046
+│   │   ├── test_sprint7.py                 ← US-031, US-034–035, US-041
+│   │   ├── test_sprint8.py                 ← US-029–030, US-032–033
+│   │   └── test_drivers.py                 ← 20 tests: US-047, US-048, US-049
 │   ├── alembic/
 │   │   └── versions/
 │   │       ├── 001_initial_schema.py       ← users, otp_codes, subscription_plans, owner_subscriptions, vehicles
 │   │       ├── 002_vehicle_management.py   ← adds name/vin/initial_mileage, renames plate→license_plate, vehicle_drivers
 │   │       ├── 003_fuel_entries_activity_logs.py ← fuel_entries, activity_logs tables
-│   │       └── 004_maintenance.py          ← maintenance table
+│   │       ├── 004_maintenance.py          ← maintenance table
+│   │       ├── 005_*.py                    ← Sprint 5–8 migrations (dashboard, admin, export, AI, webhook)
+│   │       └── 006_driver_access_control.py ← email nullable, username VARCHAR(100) UNIQUE, is_disabled BOOLEAN
 │   ├── alembic.ini
 │   ├── Dockerfile
 │   └── requirements.txt
@@ -158,7 +171,7 @@ FlotteApp/
 
 | Table | Key Columns |
 |-------|-------------|
-| `users` | id, email, password_hash, role, full_name, phone, whatsapp_number, is_verified, is_active, driving_status, active_vehicle_id (FK use_alter), owner_id (FK self) |
+| `users` | id, email (OWNER/ADMIN), username (DRIVER), password_hash, role, full_name, whatsapp_number, owner_id (FK self — DRIVER's owning OWNER), is_active, is_suspended, is_disabled (DRIVER only), driving_status, active_vehicle_id (FK use_alter) |
 | `otp_codes` | id, user_id (FK), code, purpose (EMAIL_VERIFY/PASSWORD_RESET), expires_at, used_at |
 | `subscription_plans` | id, name, max_vehicles, max_drivers, price_fcfa, ai_reports_per_month, has_whatsapp, has_export, has_webhook |
 | `owner_subscriptions` | id, owner_id (FK unique), plan_id (FK), started_at, expires_at, is_active, assigned_by |
@@ -205,6 +218,15 @@ Remaining tables (webhook_state, report_schedules) in `docs/design/02-database-d
 | GET | `/api/v1/driver/vehicles` | US-022 |
 | POST | `/api/v1/driver/activate` | US-023 |
 | POST | `/api/v1/driver/deactivate` | US-023 |
+
+### Driver Management (`/api/v1/drivers`) — OWNER only
+| Method | Endpoint | Story |
+|--------|----------|-------|
+| POST | `/api/v1/drivers` | US-047 |
+| GET | `/api/v1/drivers` | US-049 |
+| PATCH | `/api/v1/drivers/{id}/status` | US-047 |
+| PATCH | `/api/v1/drivers/{id}/password` | US-047 |
+| DELETE | `/api/v1/drivers/{id}` | US-047 |
 
 ### Fuel & Audit Log (`/api/v1/fuel`, `/api/v1/owner`)
 | Method | Endpoint | Story |
@@ -268,14 +290,48 @@ Remaining tables (webhook_state, report_schedules) in `docs/design/02-database-d
 | US-027 | Abnormal consumption detection (>20% deviation from average) | ✅ |
 | US-028 | Monthly cost spike detection (current month >30% above previous) | ✅ |
 
-### Sprint 5 — Owner Dashboard 🔜
-| Story | Description | Points |
+### Sprint 5 — Owner Dashboard ✅
+| Story | Description | Status |
 |-------|-------------|--------|
-| US-017 | Fleet financial summary & charts | 5 |
-| US-018 | Fleet consumption indicators | 3 |
-| US-019 | Driver status panel | 2 |
-| US-020 | Alerts, anomalies & compliance on dashboard | 5 |
-| US-025 | Filter activity log | 2 |
+| US-017 | Fleet financial summary & charts | ✅ |
+| US-018 | Fleet consumption indicators | ✅ |
+| US-019 | Driver status panel | ✅ |
+| US-020 | Alerts, anomalies & compliance on dashboard | ✅ |
+| US-025 | Filter activity log | ✅ |
+
+### Sprint 6 — Super Admin & Subscription UI ✅
+| Story | Description | Status |
+|-------|-------------|--------|
+| US-036 | View & search all users | ✅ |
+| US-037 | Suspend & reactivate a user | ✅ |
+| US-038 | Permanently delete a user | ✅ |
+| US-039 | View any owner's fleet (admin) | ✅ |
+| US-040 | Manage subscription plans per owner | ✅ |
+| US-045 | Upgrade prompt for locked features (403 payload) | ✅ |
+| US-046 | Owner views current plan & usage | ✅ |
+
+### Sprint 7 — Export, WhatsApp & Analytics ✅
+| Story | Description | Status |
+|-------|-------------|--------|
+| US-031 | Export fleet data (PDF / Excel) | ✅ |
+| US-034 | Configure WhatsApp notifications | ✅ |
+| US-035 | WhatsApp alert dispatch | ✅ |
+| US-041 | Platform-wide analytics (admin) | ✅ |
+
+### Sprint 8 — AI Reports & Webhook ✅
+| Story | Description | Status |
+|-------|-------------|--------|
+| US-029 | Automated webhook dispatch | ✅ |
+| US-030 | View last webhook status | ✅ |
+| US-032 | Generate on-demand AI fleet report | ✅ |
+| US-033 | Configure scheduled AI reports | ✅ |
+
+### Sprint 9 — Driver Access Management ✅
+| Story | Description | Status |
+|-------|-------------|--------|
+| US-047 | Owner creates & manages driver credentials | ✅ |
+| US-048 | Driver logs in with username (no email required) | ✅ |
+| US-049 | Owner-scoped driver list isolation | ✅ |
 
 ---
 
@@ -291,7 +347,7 @@ docker compose run --rm \
   backend python -m pytest tests/ -v
 ```
 
-**Result: 88 passed, 0 errors**
+**Result: 203 passed, 0 errors**
 
 ---
 
@@ -339,8 +395,13 @@ compute_alerts(db, owner_id) → list[AlertResponse]
 - **OTP:** single-use, previous OTPs invalidated on new request, enumeration-safe (forgot-password always 200)
 - **Plan enforcement:** `require_plan("pro")` FastAPI dep + vehicle-count check in `vehicle_service._check_plan_vehicle_limit()`
 - **Vehicle limit on restore:** restoring an archived vehicle also checks plan limit (counts active+paused only)
-- **Driver assignment:** any DRIVER-role user can be assigned to any owner's vehicle
+- **Driver assignment:** only DRIVER-role users belonging to the requesting owner (`owner_id = current_user.id`) can be assigned to that owner's vehicles
+- **Driver provisioning:** drivers are created by their owner via `POST /api/v1/drivers` with username + password; no email required; no self-registration for DRIVER role
+- **Driver isolation:** `users.owner_id` FK binds each driver to their creating owner; all driver-list queries filter by this field
+- **Driver login:** username + password (dual-mode login: email for OWNER/ADMIN, username for DRIVER)
+- **Driver disable:** `users.is_disabled` flag — owner can block/unblock login without deleting the account
 - **Archive resets driver:** archiving a vehicle auto-sets `driving_status=False` and `active_vehicle_id=None` for active driver
+- **2026-04-19** — Added feature: Owner-Managed Driver Access Control (US-047–049). Drivers can no longer self-register; owners provision accounts via username/password with full credential lifecycle (disable, reset, remove). Driver lists are isolated per owner via `owner_id` FK. Login is dual-mode: email for owners, username for drivers.
 - **Payment:** no gateway — SUPER_ADMIN manually assigns plans
 - **WhatsApp:** Meta Cloud API, silent skip if `WHATSAPP_TOKEN` not set
 - **AI reports:** OpenRouter, French system prompt, Pro plan counter resets monthly via APScheduler

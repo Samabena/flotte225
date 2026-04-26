@@ -29,39 +29,82 @@
     .badge-inactive { background:#F3F4F6; color:#6B7280; }
     .tab-btn { border-bottom: 2px solid transparent; transition: border-color .2s; }
     .tab-btn.active { border-color: #005F02; color: #005F02; font-weight: 600; }
+    .vehicle-tab-btn { border-bottom: 2px solid transparent; transition: border-color .2s; }
+    .vehicle-tab-btn.active { border-color: #005F02; color: #005F02; font-weight: 600; }
+    .input-field { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; transition: box-shadow .15s; }
+    .input-field:focus { box-shadow: 0 0 0 2px rgba(0,95,2,.25); border-color: #005F02; }
+    #sidebar { transition: width 0.25s ease; overflow: hidden; }
+    #sidebar.collapsed { width: 3.5rem; padding-left: 0.625rem; padding-right: 0.625rem; }
+    #sidebar.collapsed .sidebar-label { display: none; }
+    #sidebar.collapsed .sidebar-logo { justify-content: center; }
+    #sidebar.collapsed nav a, #sidebar.collapsed nav button,
+    #sidebar.collapsed .sidebar-action-btn { justify-content: center; }
+    #sidebar.collapsed .sidebar-bottom-btn { justify-content: center; }
+    #sidebar-toggle svg { transition: transform 0.25s ease; }
+    #sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
   </style>
 </head>
-<body class="min-h-screen flex">
+<body class="h-screen flex overflow-hidden">
 
   <!-- Sidebar -->
-  <aside class="sidebar w-56 min-h-screen flex flex-col p-5 text-white shrink-0">
-    <div class="mb-8">
-      <span class="text-xl font-bold tracking-wide text-[#C0B87A]">Flotte225</span>
+  <aside id="sidebar" class="sidebar w-56 h-screen flex flex-col p-5 text-white shrink-0">
+    <div class="sidebar-logo mb-8 flex items-center justify-between gap-2">
+      <span class="text-xl font-bold tracking-wide text-[#C0B87A] sidebar-label">Flotte225</span>
+      <button id="sidebar-toggle" class="text-white/60 hover:text-white p-1 rounded hover:bg-white/10 transition shrink-0" title="Réduire">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
     </div>
     <nav class="flex flex-col gap-1 text-sm font-medium">
-      <a href="dashboard-owner.html" class="px-3 py-2 rounded-lg bg-white/10">Tableau de bord</a>
-      <a href="activity.html" class="px-3 py-2 rounded-lg hover:bg-white/10">Journal d'activité</a>
+      <a href="/dashboard-owner" class="px-3 py-2 rounded-lg bg-white/10 flex items-center gap-3" title="Tableau de bord">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        <span class="sidebar-label">Tableau de bord</span>
+      </a>
+      <a href="/vehicles" class="px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Véhicules">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
+        <span class="sidebar-label">Véhicules</span>
+      </a>
+      <a href="/maintenance" class="px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Maintenance">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"/></svg>
+        <span class="sidebar-label">Maintenance</span>
+      </a>
+      <a href="/reports-template" class="px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Rapports">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        <span class="sidebar-label">Rapports</span>
+      </a>
     </nav>
     <div class="mt-6 pt-6 border-t border-white/10 flex flex-col gap-1 text-sm">
-      <button id="btn-export-fuel-excel" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-[#C0B87A]" title="Exporter le carburant (Excel)">
-        Exporter carburant
+      <button id="btn-export-fuel-excel" class="sidebar-action-btn flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-white/10 text-[#C0B87A]" title="Exporter le carburant (Excel)">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+        <span class="sidebar-label">Exporter carburant</span>
       </button>
-      <button id="btn-export-maint-pdf" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-[#C0B87A]" title="Exporter la maintenance (PDF)">
-        Exporter maintenance
-      </button>
-      <button id="btn-whatsapp-config" class="text-left px-3 py-2 rounded-lg hover:bg-white/10 text-white/70">
-        Alertes WhatsApp
+      <button id="btn-export-maint-pdf" class="sidebar-action-btn flex items-center gap-3 text-left px-3 py-2 rounded-lg hover:bg-white/10 text-[#C0B87A]" title="Exporter la maintenance (PDF)">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+        <span class="sidebar-label">Exporter maintenance</span>
       </button>
     </div>
-    <div class="mt-auto">
-      <button id="btn-logout" class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm">
-        Déconnexion
-      </button>
+    <div class="mt-auto flex flex-col gap-1 text-sm">
+      <a href="/activity" class="sidebar-bottom-btn px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Journal d'activité">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="sidebar-label">Journal d'activité</span>
+      </a>
+      <a href="/settings" class="sidebar-bottom-btn px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Paramètres">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="sidebar-label">Paramètres</span>
+      </a>
+      <div class="mt-2 pt-2 border-t border-white/10">
+        <button id="btn-logout" class="sidebar-bottom-btn flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm" title="Déconnexion">
+          <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/></svg>
+          <span class="sidebar-label">Déconnexion</span>
+        </button>
+      </div>
     </div>
   </aside>
 
   <!-- Main -->
   <main class="flex-1 p-6 overflow-y-auto">
+
+  <!-- ── Dashboard section ─────────────────────────────────────────────────── -->
+  <div id="section-dashboard">
     <h1 class="text-2xl font-bold text-[#005F02] mb-6">Tableau de bord</h1>
 
     <!-- KPI Cards -->
@@ -190,6 +233,69 @@
       </div>
     </div>
 
+  </div><!-- /section-dashboard -->
+
+  <!-- ── Vehicles section ──────────────────────────────────────────────────── -->
+  <div id="section-vehicles" class="hidden">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-[#005F02]">Mes Véhicules</h1>
+      <button id="btn-add-vehicle" class="bg-[#005F02] text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#004a01] transition">
+        + Ajouter un véhicule
+      </button>
+    </div>
+
+    <!-- Vehicle tabs -->
+    <div class="flex gap-6 border-b mb-4">
+      <button class="vehicle-tab-btn active pb-2 text-sm" data-vtab="active">Actifs</button>
+      <button class="vehicle-tab-btn pb-2 text-sm text-gray-500" data-vtab="paused">En pause</button>
+      <button class="vehicle-tab-btn pb-2 text-sm text-gray-500" data-vtab="archived">Archivés</button>
+    </div>
+
+    <div class="card p-5">
+      <div id="vehicles-loading" class="text-center text-gray-400 text-sm py-8">Chargement…</div>
+      <table id="vehicles-table" class="hidden w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-500 border-b">
+            <th class="pb-2 font-medium">Nom</th>
+            <th class="pb-2 font-medium">Marque / Modèle</th>
+            <th class="pb-2 font-medium">Plaque</th>
+            <th class="pb-2 font-medium">Carburant</th>
+            <th class="pb-2 font-medium">Statut</th>
+            <th class="pb-2 font-medium text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="vehicles-tbody"></tbody>
+      </table>
+      <p id="empty-vehicles" class="hidden text-center text-gray-400 text-sm py-8">Aucun véhicule dans cet onglet</p>
+    </div>
+  </div><!-- /section-vehicles -->
+
+  <!-- ── Drivers section ───────────────────────────────────────────────────── -->
+  <div id="section-drivers" class="hidden">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-[#005F02]">Chauffeurs de la flotte</h1>
+      <button id="btn-assign-driver" class="bg-[#005F02] text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-[#004a01] transition">
+        + Assigner un chauffeur
+      </button>
+    </div>
+
+    <div class="card p-5">
+      <div id="drivers-mgmt-loading" class="text-center text-gray-400 text-sm py-8">Chargement…</div>
+      <table id="drivers-mgmt-table" class="hidden w-full text-sm">
+        <thead>
+          <tr class="text-left text-gray-500 border-b">
+            <th class="pb-2 font-medium">Chauffeur</th>
+            <th class="pb-2 font-medium">Véhicule assigné</th>
+            <th class="pb-2 font-medium">Statut</th>
+            <th class="pb-2 font-medium text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="drivers-mgmt-tbody"></tbody>
+      </table>
+      <p id="empty-drivers-mgmt" class="hidden text-center text-gray-400 text-sm py-8">Aucun chauffeur assigné</p>
+    </div>
+  </div><!-- /section-drivers -->
+
   </main>
 
   <!-- WhatsApp config modal (US-034) -->
@@ -234,6 +340,100 @@
     </div>
   </div>
 
+  <!-- Vehicle add/edit modal -->
+  <div id="modal-vehicle" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="modal-vehicle-title" class="font-bold text-[#005F02]">Ajouter un véhicule</h2>
+        <button id="modal-vehicle-close" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label class="block text-xs text-gray-500 mb-1">Nom du véhicule *</label>
+          <input id="v-name" type="text" class="input-field" placeholder="Ex : Camion 01" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Marque *</label>
+          <input id="v-brand" type="text" class="input-field" placeholder="Ex : Toyota" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Modèle *</label>
+          <input id="v-model" type="text" class="input-field" placeholder="Ex : Land Cruiser" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Plaque d'immatriculation *</label>
+          <input id="v-plate" type="text" class="input-field" placeholder="Ex : AB-1234-CI" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Type de carburant *</label>
+          <select id="v-fuel" class="input-field">
+            <option value="">Sélectionner…</option>
+            <option value="essence">Essence</option>
+            <option value="diesel">Diesel</option>
+            <option value="electrique">Électrique</option>
+            <option value="hybride">Hybride</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Kilométrage initial *</label>
+          <input id="v-mileage" type="number" min="0" class="input-field" placeholder="0" />
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500 mb-1">Année</label>
+          <input id="v-year" type="number" min="1900" max="2100" class="input-field" placeholder="Ex : 2022" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-xs text-gray-500 mb-1">VIN (numéro de châssis)</label>
+          <input id="v-vin" type="text" class="input-field" placeholder="Optionnel" />
+        </div>
+      </div>
+      <div id="vehicle-form-error" class="hidden text-red-600 text-xs mt-3"></div>
+      <div class="flex gap-2 mt-5">
+        <button id="modal-vehicle-cancel" class="flex-1 border border-gray-200 rounded-lg py-2 text-sm hover:bg-gray-50">Annuler</button>
+        <button id="btn-save-vehicle" class="flex-1 bg-[#005F02] text-white rounded-lg py-2 text-sm font-medium hover:bg-[#004a01]">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assign driver modal -->
+  <div id="modal-assign-driver" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-[#005F02]">Assigner un chauffeur</h2>
+        <button id="modal-assign-close" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Le chauffeur doit d'abord s'inscrire sur Flotte225 et vous communiquer son ID utilisateur.</p>
+      <div class="mb-3">
+        <label class="block text-xs text-gray-500 mb-1">Véhicule *</label>
+        <select id="assign-vehicle-id" class="input-field"></select>
+      </div>
+      <div class="mb-3">
+        <label class="block text-xs text-gray-500 mb-1">ID du chauffeur *</label>
+        <input id="assign-driver-id" type="number" min="1" class="input-field" placeholder="Ex : 42" />
+      </div>
+      <div id="assign-error" class="hidden text-red-600 text-xs mb-3"></div>
+      <div id="assign-success" class="hidden text-green-700 text-xs mb-3"></div>
+      <div class="flex gap-2">
+        <button id="modal-assign-cancel" class="flex-1 border border-gray-200 rounded-lg py-2 text-sm hover:bg-gray-50">Annuler</button>
+        <button id="btn-do-assign" class="flex-1 bg-[#005F02] text-white rounded-lg py-2 text-sm font-medium hover:bg-[#004a01]">Assigner</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm action modal -->
+  <div id="modal-confirm" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+      <p id="confirm-msg" class="text-gray-700 text-sm mb-5 text-center">Confirmer cette action ?</p>
+      <div class="flex gap-2">
+        <button id="confirm-cancel" class="flex-1 border border-gray-200 rounded-lg py-2 text-sm hover:bg-gray-50">Annuler</button>
+        <button id="confirm-ok" class="flex-1 bg-red-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-red-700">Confirmer</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});})();
+  </script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>

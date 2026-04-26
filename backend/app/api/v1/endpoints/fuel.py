@@ -18,6 +18,7 @@ def _ok(data=None, message: str = ""):
 
 # ── Driver endpoints ──────────────────────────────────────────────────────────
 
+
 @router.post("/fuel", status_code=status.HTTP_201_CREATED, response_model=None)
 def submit_fuel_entry(
     body: FuelEntryCreate,
@@ -26,7 +27,10 @@ def submit_fuel_entry(
 ):
     """US-010 — Submit a fuel entry."""
     entry = fuel_service.create_fuel_entry(db, driver, body)
-    return _ok(data=FuelEntryResponse.model_validate(entry), message="Entrée carburant enregistrée")
+    return _ok(
+        data=FuelEntryResponse.model_validate(entry),
+        message="Entrée carburant enregistrée",
+    )
 
 
 @router.get("/fuel", response_model=None)
@@ -48,7 +52,10 @@ def edit_fuel_entry(
 ):
     """US-012 — Edit a fuel entry within 24h."""
     entry = fuel_service.update_fuel_entry(db, driver, entry_id, body)
-    return _ok(data=FuelEntryResponse.model_validate(entry), message="Entrée carburant mise à jour")
+    return _ok(
+        data=FuelEntryResponse.model_validate(entry),
+        message="Entrée carburant mise à jour",
+    )
 
 
 @router.delete("/fuel/{entry_id}", status_code=status.HTTP_200_OK, response_model=None)
@@ -63,6 +70,7 @@ def delete_fuel_entry(
 
 
 # ── Owner endpoints ───────────────────────────────────────────────────────────
+
 
 @router.get("/owner/fuel-entries", response_model=None)
 def list_fleet_fuel_entries(
@@ -85,18 +93,31 @@ def list_fleet_activity_logs(
 ):
     """US-024 / US-025 — Owner views filterable audit log with driver & vehicle names."""
     logs = fuel_service.list_activity_logs(
-        db, owner.id, driver_id=driver_id, vehicle_id=vehicle_id, limit=limit, offset=offset
+        db,
+        owner.id,
+        driver_id=driver_id,
+        vehicle_id=vehicle_id,
+        limit=limit,
+        offset=offset,
     )
     # Enrich with display names in one round-trip each
     driver_ids = {log.driver_id for log in logs}
     vehicle_ids = {log.vehicle_id for log in logs}
     drivers_map = (
-        {u.id: u.full_name for u in db.query(User).filter(User.id.in_(driver_ids)).all()}
-        if driver_ids else {}
+        {
+            u.id: u.full_name
+            for u in db.query(User).filter(User.id.in_(driver_ids)).all()
+        }
+        if driver_ids
+        else {}
     )
     vehicles_map = (
-        {v.id: v.name for v in db.query(Vehicle).filter(Vehicle.id.in_(vehicle_ids)).all()}
-        if vehicle_ids else {}
+        {
+            v.id: v.name
+            for v in db.query(Vehicle).filter(Vehicle.id.in_(vehicle_ids)).all()
+        }
+        if vehicle_ids
+        else {}
     )
     result = []
     for log in logs:

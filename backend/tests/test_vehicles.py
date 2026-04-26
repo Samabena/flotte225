@@ -8,11 +8,12 @@ Tests for Sprint 2 vehicle management stories:
   US-022 — Driver views assigned vehicles
   US-023 — Toggle driving status
 """
+
 import pytest
 from unittest.mock import patch
 
 from app.models.otp_code import OtpCode
-from app.models.subscription import SubscriptionPlan, OwnerSubscription
+from app.models.subscription import SubscriptionPlan
 
 
 # ── Fixtures & helpers ────────────────────────────────────────────────────────
@@ -30,35 +31,78 @@ VEHICLE_PAYLOAD = {
 
 def _seed_plans(db):
     from scripts.seed import PLANS
+
     for plan_data in PLANS:
-        if not db.query(SubscriptionPlan).filter(SubscriptionPlan.name == plan_data["name"]).first():
+        if (
+            not db.query(SubscriptionPlan)
+            .filter(SubscriptionPlan.name == plan_data["name"])
+            .first()
+        ):
             db.add(SubscriptionPlan(**plan_data))
     db.commit()
 
 
 def _register_and_verify(client, db, email, role="OWNER"):
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        client.post("/api/v1/auth/register", json={
-            "full_name": "Test User",
-            "email": email,
-            "password": "Password1",
-            "role": role,
-        })
-    otp = db.query(OtpCode).filter(OtpCode.purpose == "EMAIL_VERIFY").order_by(OtpCode.id.desc()).first()
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "Test User",
+                "email": email,
+                "password": "Password1",
+            },
+        )
+    otp = (
+        db.query(OtpCode)
+        .filter(OtpCode.purpose == "EMAIL_VERIFY")
+        .order_by(OtpCode.id.desc())
+        .first()
+    )
     client.post("/api/v1/auth/verify-email", json={"email": email, "code": otp.code})
-    res = client.post("/api/v1/auth/login", json={"email": email, "password": "Password1"})
+    res = client.post(
+        "/api/v1/auth/login", json={"identifier": email, "password": "Password1"}
+    )
     return res.json()["access_token"]
+
+
+def _create_driver_in_db(db, owner_id, username="testdriver.veh"):
+    from app.models.user import User
+    from app.core.security import hash_password
+
+    driver = User(
+        full_name="Test Driver",
+        username=username,
+        email=None,
+        password_hash=hash_password("Password1"),
+        role="DRIVER",
+        owner_id=owner_id,
+        is_verified=True,
+        is_active=True,
+        is_disabled=False,
+    )
+    db.add(driver)
+    db.commit()
+    db.refresh(driver)
+    return driver
 
 
 @pytest.fixture()
 def owner_token(client, db):
     _seed_plans(db)
-    return _register_and_verify(client, db, "owner@veh.ci", "OWNER")
+    return _register_and_verify(client, db, "owner@veh.ci")
 
 
 @pytest.fixture()
-def driver_token(client, db):
-    return _register_and_verify(client, db, "driver@veh.ci", "DRIVER")
+def driver_token(client, db, owner_token):
+    from app.core.security import decode_access_token
+
+    owner_id = int(decode_access_token(owner_token)["sub"])
+    _create_driver_in_db(db, owner_id, username="testdriver.veh")
+    res = client.post(
+        "/api/v1/auth/login",
+        json={"identifier": "testdriver.veh", "password": "Password1"},
+    )
+    return res.json()["access_token"]
 
 
 @pytest.fixture()
@@ -77,6 +121,7 @@ def _create_vehicle(client, owner_headers, payload=None):
 
 
 # ── US-005: Register a vehicle ────────────────────────────────────────────────
+
 
 def test_create_vehicle_success(client, owner_headers):
     res = _create_vehicle(client, owner_headers)
@@ -100,6 +145,7 @@ def test_create_vehicle_missing_required_field(client, owner_headers):
     assert res.status_code == 422
 
 
+@pytest.mark.skip(reason="Subscription tiering deferred — plan gating disabled")
 def test_create_vehicle_plan_limit(client, db, owner_headers):
     """Starter plan allows max 2 vehicles — 3rd should be rejected."""
     _create_vehicle(client, owner_headers, {"license_plate": "AA-001-CI"})
@@ -115,26 +161,38 @@ def test_create_vehicle_requires_owner_role(client, driver_headers):
 
 # ── US-006: Edit a vehicle ────────────────────────────────────────────────────
 
+
 def test_update_vehicle_success(client, owner_headers):
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    res = client.patch(f"/api/v1/vehicles/{v_id}", json={"name": "Nouveau Nom"}, headers=owner_headers)
+    res = client.patch(
+        f"/api/v1/vehicles/{v_id}", json={"name": "Nouveau Nom"}, headers=owner_headers
+    )
     assert res.status_code == 200
     assert res.json()["data"]["name"] == "Nouveau Nom"
 
 
 def test_update_vehicle_duplicate_plate(client, owner_headers):
     _create_vehicle(client, owner_headers, {"license_plate": "XX-001-CI"})
-    v2 = _create_vehicle(client, owner_headers, {"license_plate": "XX-002-CI"}).json()["data"]
-    res = client.patch(f"/api/v1/vehicles/{v2['id']}", json={"license_plate": "XX-001-CI"}, headers=owner_headers)
+    v2 = _create_vehicle(client, owner_headers, {"license_plate": "XX-002-CI"}).json()[
+        "data"
+    ]
+    res = client.patch(
+        f"/api/v1/vehicles/{v2['id']}",
+        json={"license_plate": "XX-001-CI"},
+        headers=owner_headers,
+    )
     assert res.status_code == 409
 
 
 def test_update_vehicle_not_found(client, owner_headers):
-    res = client.patch("/api/v1/vehicles/9999", json={"name": "X"}, headers=owner_headers)
+    res = client.patch(
+        "/api/v1/vehicles/9999", json={"name": "X"}, headers=owner_headers
+    )
     assert res.status_code == 404
 
 
 # ── US-007: Pause and resume ──────────────────────────────────────────────────
+
 
 def test_pause_and_resume_vehicle(client, owner_headers):
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
@@ -162,6 +220,7 @@ def test_resume_active_vehicle_fails(client, owner_headers):
 
 
 # ── US-008: Archive / restore ─────────────────────────────────────────────────
+
 
 def test_archive_vehicle(client, owner_headers):
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
@@ -204,13 +263,19 @@ def test_archive_resets_active_driver(client, db, owner_headers, driver_headers)
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
 
     # Get driver's id from DB
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
 
     # Assign driver to vehicle
-    client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
+    client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
 
     # Activate driver
-    client.post("/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers)
+    client.post(
+        "/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers
+    )
 
     # Verify driver is active
     db.expire(driver)
@@ -227,13 +292,18 @@ def test_archive_resets_active_driver(client, db, owner_headers, driver_headers)
 
 # ── US-009: Assign / remove drivers ──────────────────────────────────────────
 
+
 def test_assign_driver_to_vehicle(client, db, owner_headers, driver_headers):
     from app.models.user import User
 
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
 
-    res = client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
+    res = client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
     assert res.status_code == 201
 
     list_res = client.get(f"/api/v1/vehicles/{v_id}/drivers", headers=owner_headers)
@@ -245,10 +315,18 @@ def test_assign_driver_duplicate(client, db, owner_headers, driver_headers):
     from app.models.user import User
 
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
 
-    client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
-    res = client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
+    client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
+    res = client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
     assert res.status_code == 409
 
 
@@ -258,7 +336,11 @@ def test_cannot_assign_owner_as_driver(client, db, owner_headers):
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
     owner = db.query(User).filter(User.email == "owner@veh.ci").first()
 
-    res = client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": owner.id}, headers=owner_headers)
+    res = client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": owner.id},
+        headers=owner_headers,
+    )
     assert res.status_code == 400
 
 
@@ -266,10 +348,16 @@ def test_remove_driver_from_vehicle(client, db, owner_headers, driver_headers):
     from app.models.user import User
 
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
 
-    client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
-    res = client.delete(f"/api/v1/vehicles/{v_id}/drivers/{driver.id}", headers=owner_headers)
+    client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
+    res = client.delete(
+        f"/api/v1/vehicles/{v_id}/drivers/{driver.id}", headers=owner_headers
+    )
     assert res.status_code == 200
 
     list_res = client.get(f"/api/v1/vehicles/{v_id}/drivers", headers=owner_headers)
@@ -280,10 +368,16 @@ def test_remove_driver_resets_driving_status(client, db, owner_headers, driver_h
     from app.models.user import User
 
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
 
-    client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
-    client.post("/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers)
+    client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
+    client.post(
+        "/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers
+    )
 
     db.expire(driver)
     assert driver.driving_status is True
@@ -296,12 +390,17 @@ def test_remove_driver_resets_driving_status(client, db, owner_headers, driver_h
 
 # ── US-022: Driver views assigned vehicles ────────────────────────────────────
 
+
 def test_driver_sees_assigned_vehicles(client, db, owner_headers, driver_headers):
     from app.models.user import User
 
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
-    client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
+    client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
 
     res = client.get("/api/v1/driver/vehicles", headers=driver_headers)
     assert res.status_code == 200
@@ -315,12 +414,18 @@ def test_driver_sees_empty_list_when_unassigned(client, driver_headers):
     assert res.json()["data"] == []
 
 
-def test_driver_does_not_see_archived_vehicle(client, db, owner_headers, driver_headers):
+def test_driver_does_not_see_archived_vehicle(
+    client, db, owner_headers, driver_headers
+):
     from app.models.user import User
 
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
-    client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
+    client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
     client.post(f"/api/v1/vehicles/{v_id}/archive", headers=owner_headers)
 
     res = client.get("/api/v1/driver/vehicles", headers=driver_headers)
@@ -330,14 +435,21 @@ def test_driver_does_not_see_archived_vehicle(client, db, owner_headers, driver_
 
 # ── US-023: Toggle driving status ─────────────────────────────────────────────
 
+
 def test_driver_activates_and_deactivates(client, db, owner_headers, driver_headers):
     from app.models.user import User
 
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
-    client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
+    client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
 
-    activate_res = client.post("/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers)
+    activate_res = client.post(
+        "/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers
+    )
     assert activate_res.status_code == 200
     assert activate_res.json()["data"]["driving_status"] is True
 
@@ -346,22 +458,34 @@ def test_driver_activates_and_deactivates(client, db, owner_headers, driver_head
     assert deactivate_res.json()["data"]["driving_status"] is False
 
 
-def test_driver_cannot_activate_unassigned_vehicle(client, owner_headers, driver_headers):
+def test_driver_cannot_activate_unassigned_vehicle(
+    client, owner_headers, driver_headers
+):
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
     # No assignment — should be rejected
-    res = client.post("/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers)
+    res = client.post(
+        "/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers
+    )
     assert res.status_code == 403
 
 
-def test_driver_cannot_activate_paused_vehicle(client, db, owner_headers, driver_headers):
+def test_driver_cannot_activate_paused_vehicle(
+    client, db, owner_headers, driver_headers
+):
     from app.models.user import User
 
     v_id = _create_vehicle(client, owner_headers).json()["data"]["id"]
-    driver = db.query(User).filter(User.email == "driver@veh.ci").first()
-    client.post(f"/api/v1/vehicles/{v_id}/drivers", json={"driver_id": driver.id}, headers=owner_headers)
+    driver = db.query(User).filter(User.username == "testdriver.veh").first()
+    client.post(
+        f"/api/v1/vehicles/{v_id}/drivers",
+        json={"driver_id": driver.id},
+        headers=owner_headers,
+    )
     client.post(f"/api/v1/vehicles/{v_id}/pause", headers=owner_headers)
 
-    res = client.post("/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers)
+    res = client.post(
+        "/api/v1/driver/activate", json={"vehicle_id": v_id}, headers=driver_headers
+    )
     assert res.status_code == 400
 
 

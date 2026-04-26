@@ -4,6 +4,7 @@ WhatsApp notification service — Sprint 7
 
 Non-blocking: silently skips if env vars or owner number are missing.
 """
+
 import logging
 
 import httpx
@@ -47,7 +48,9 @@ def send_whatsapp_message(to: str, message: str) -> bool:
         if response.status_code >= 400:
             logger.error(
                 "WhatsApp API error %s for %s: %s",
-                response.status_code, to, response.text,
+                response.status_code,
+                to,
+                response.text,
             )
             return False
         return True
@@ -76,7 +79,9 @@ def send_fleet_alerts_to_owner(
     for a in critical[:_MAX_ALERTS_PER_MESSAGE]:
         lines.append(f"• {a.vehicle_name} : {a.message}")
     if len(critical) > _MAX_ALERTS_PER_MESSAGE:
-        lines.append(f"… et {len(critical) - _MAX_ALERTS_PER_MESSAGE} alerte(s) supplémentaire(s).")
+        lines.append(
+            f"… et {len(critical) - _MAX_ALERTS_PER_MESSAGE} alerte(s) supplémentaire(s)."
+        )
     lines.append("\nConnectez-vous sur Flotte225 pour voir le détail.")
 
     return send_whatsapp_message(owner_whatsapp, "\n".join(lines))

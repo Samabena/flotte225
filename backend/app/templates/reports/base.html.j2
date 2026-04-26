@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Rapport — Flotte225{% endblock %}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 14mm 22mm 14mm;
+      @bottom-center {
+        content: "Page " counter(page) " / " counter(pages)
+                 " · Flotte225 · Généré le {{ generated_at }}";
+        font-size: 9pt;
+        color: #6b7280;
+      }
+    }
+
+    body {
+      font-family: "DejaVu Sans", "Helvetica", Arial, sans-serif;
+      font-size: 10.5pt;
+      color: #111827;
+      margin: 0;
+    }
+
+    h1 { font-size: 20pt; color: #005F02; margin: 0 0 4pt; }
+    h2 { font-size: 13pt; color: #005F02; margin: 18pt 0 6pt; border-bottom: 1px solid #d1d5db; padding-bottom: 3pt; }
+    h3 { font-size: 11pt; color: #374151; margin: 10pt 0 4pt; }
+    p  { margin: 0 0 6pt; line-height: 1.4; }
+
+    .header {
+      border-bottom: 3px solid #005F02;
+      padding-bottom: 8pt;
+      margin-bottom: 12pt;
+    }
+    .header .company { font-size: 11pt; color: #6b7280; margin-top: 2pt; }
+    .header .period  { font-size: 10pt; color: #374151; margin-top: 4pt; font-weight: 600; }
+
+    .kpi-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6pt;
+      margin: 8pt 0 4pt;
+    }
+    .kpi {
+      flex: 1 1 30%;
+      min-width: 30%;
+      background: #f3f7f3;
+      border-left: 3px solid #005F02;
+      padding: 8pt 10pt;
+      border-radius: 3pt;
+    }
+    .kpi .label { font-size: 8.5pt; color: #6b7280; text-transform: uppercase; letter-spacing: 0.3pt; }
+    .kpi .value { font-size: 14pt; color: #005F02; font-weight: 700; margin-top: 2pt; }
+    .kpi .sub   { font-size: 8.5pt; color: #6b7280; margin-top: 2pt; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 6pt;
+      font-size: 9.5pt;
+    }
+    thead th {
+      background: #005F02;
+      color: #fff;
+      text-align: left;
+      padding: 5pt 6pt;
+      font-weight: 600;
+    }
+    tbody td {
+      padding: 4pt 6pt;
+      border-bottom: 0.5pt solid #e5e7eb;
+    }
+    tbody tr:nth-child(even) td { background: #f9fafb; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    .empty {
+      color: #6b7280;
+      font-style: italic;
+      padding: 8pt 0;
+    }
+
+    .bar-track { background: #e5e7eb; border-radius: 2pt; height: 8pt; width: 100%; }
+    .bar-fill  { background: #005F02; height: 8pt; border-radius: 2pt; }
+
+    .badge {
+      display: inline-block;
+      font-size: 8.5pt;
+      padding: 1pt 6pt;
+      border-radius: 8pt;
+      font-weight: 600;
+    }
+    .badge-critical { background: #fee2e2; color: #b91c1c; }
+    .badge-warning  { background: #fef3c7; color: #92400e; }
+    .badge-ok       { background: #dcfce7; color: #166534; }
+    .badge-muted    { background: #f3f4f6; color: #6b7280; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>{% block title_h1 %}{% endblock %}</h1>
+    {% if company_name %}
+      <div class="company">{{ company_name }}{% if owner_name %} — {{ owner_name }}{% endif %}</div>
+    {% endif %}
+    <div class="period">Période : du {{ date_from }} au {{ date_to }}</div>
+  </div>
+
+  {% block content %}{% endblock %}
+
+</body>
+</html>

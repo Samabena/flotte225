@@ -4,14 +4,27 @@ const API = '/api/v1';
 const token = () => localStorage.getItem('access_token');
 const authHeader = () => ({ 'Authorization': `Bearer ${token()}` });
 
-// ── Redirect if not logged in ────────────────────────────────────────────────
-if (!token()) {
-  window.location.href = 'index.html';
+function isTokenValid(t) {
+  try {
+    const payload = JSON.parse(atob(t.split('.')[1]));
+    return payload.exp * 1000 > Date.now();
+  } catch { return false; }
+}
+
+// ── Redirect if not logged in, expired, or wrong role ───────────────────────
+function getRoleFromToken(t) {
+  try { return JSON.parse(atob(t.split('.')[1])).role || null; } catch { return null; }
+}
+
+const _dashTok = token();
+if (!_dashTok || !isTokenValid(_dashTok) || getRoleFromToken(_dashTok) !== 'OWNER') {
+  localStorage.clear();
+  window.location.href = '/';
 }
 
 document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.clear();
-  window.location.href = 'index.html';
+  window.location.href = '/';
 });
 
 document.getElementById('upgrade-modal-close').addEventListener('click', () => {
@@ -24,7 +37,8 @@ async function loadDashboard() {
   try {
     const res = await fetch(`${API}/dashboard/owner`, { headers: authHeader() });
     if (res.status === 401 || res.status === 403) {
-      window.location.href = 'index.html';
+      localStorage.clear();
+      window.location.href = '/';
       return;
     }
     const json = await res.json();
@@ -47,6 +61,11 @@ async function loadDashboard() {
 async function loadPlanUsage() {
   try {
     const res = await fetch(`${API}/subscription/my-plan`, { headers: authHeader() });
+    if (res.status === 401 || res.status === 403) {
+      localStorage.clear();
+      window.location.href = '/';
+      return;
+    }
     if (!res.ok) return;
     const json = await res.json();
     renderPlanUsage(json.data);
@@ -405,9 +424,10 @@ document.getElementById('btn-export-maint-pdf').addEventListener('click', () => 
   triggerExport('pdf', 'maintenance', 'maintenance.pdf');
 });
 
-// ── US-034: WhatsApp config ────────────────────────────────────────────────────
+// ── US-034: WhatsApp config ──────────────────────────────────────────────────
 
-document.getElementById('btn-whatsapp-config').addEventListener('click', () => {
+const _btnWA = document.getElementById('btn-whatsapp-config');
+if (_btnWA) _btnWA.addEventListener('click', () => {
   document.getElementById('wa-error').classList.add('hidden');
   document.getElementById('wa-success').classList.add('hidden');
   document.getElementById('modal-whatsapp').classList.remove('hidden');
@@ -440,6 +460,341 @@ document.getElementById('btn-save-whatsapp').addEventListener('click', async () 
     errEl.textContent = json.detail || 'Erreur lors de la mise à jour.';
     errEl.classList.remove('hidden');
   }
+});
+
+// ── Section navigation ────────────────────────────────────────────────────────
+const SECTIONS = ['dashboard', 'vehicles', 'drivers'];
+
+function showSection(name) {
+  SECTIONS.forEach(s => {
+    const el = document.getElementById(`section-${s}`);
+    if (el) el.classList.toggle('hidden', s !== name);
+  });
+  document.querySelectorAll('.nav-link').forEach(link => {
+    const isActive = link.dataset.section === name;
+    link.classList.toggle('bg-white/10', isActive);
+  });
+  if (name === 'vehicles') loadVehicles();
+  if (name === 'drivers') loadDriverAssignments();
+}
+
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.addEventListener('click', () => showSection(link.dataset.section));
+});
+
+// ── Vehicles management ───────────────────────────────────────────────────────
+let allVehicles = [];
+let currentVehicleTab = 'active';
+let editingVehicleId = null;
+
+const FUEL_LABELS = { essence: 'Essence', diesel: 'Diesel', electrique: 'Électrique', hybride: 'Hybride' };
+const STATUS_BADGE = {
+  active:   '<span class="badge-active   text-xs px-2 py-0.5 rounded-full font-medium">Actif</span>',
+  paused:   '<span class="badge-warning  text-xs px-2 py-0.5 rounded-full font-medium">En pause</span>',
+  archived: '<span class="badge-inactive text-xs px-2 py-0.5 rounded-full font-medium">Archivé</span>',
+};
+
+async function loadVehicles() {
+  document.getElementById('vehicles-loading').classList.remove('hidden');
+  document.getElementById('vehicles-table').classList.add('hidden');
+  document.getElementById('empty-vehicles').classList.add('hidden');
+  try {
+    const [activeRes, archivedRes] = await Promise.all([
+      apiFetch(`${API}/vehicles`),
+      apiFetch(`${API}/vehicles/archived`),
+    ]);
+    const activeData   = activeRes   && activeRes.ok   ? await activeRes.json()   : { data: [] };
+    const archivedData = archivedRes && archivedRes.ok ? await archivedRes.json() : { data: [] };
+    allVehicles = [...(activeData.data || []), ...(archivedData.data || [])];
+    renderVehiclesTab(currentVehicleTab);
+  } catch (e) {
+    console.error('Erreur chargement véhicules', e);
+  } finally {
+    document.getElementById('vehicles-loading').classList.add('hidden');
+  }
+}
+
+function renderVehiclesTab(tab) {
+  currentVehicleTab = tab;
+  const filtered = allVehicles.filter(v => v.status === tab);
+  const tbody = document.getElementById('vehicles-tbody');
+  const table = document.getElementById('vehicles-table');
+  const empty = document.getElementById('empty-vehicles');
+
+  if (filtered.length === 0) {
+    table.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  table.classList.remove('hidden');
+
+  tbody.innerHTML = filtered.map(v => {
+    let actions = '';
+    if (v.status === 'active') {
+      actions = `
+        <button class="text-xs text-[#005F02] hover:underline mr-2" onclick="openEditVehicle(${v.id})">Modifier</button>
+        <button class="text-xs text-amber-600 hover:underline mr-2" onclick="confirmAction('Mettre ce véhicule en pause ?', () => pauseVehicle(${v.id}))">Pause</button>
+        <button class="text-xs text-gray-500 hover:underline" onclick="confirmAction('Archiver ce véhicule ?', () => archiveVehicle(${v.id}))">Archiver</button>`;
+    } else if (v.status === 'paused') {
+      actions = `
+        <button class="text-xs text-[#005F02] hover:underline mr-2" onclick="openEditVehicle(${v.id})">Modifier</button>
+        <button class="text-xs text-blue-600 hover:underline mr-2" onclick="confirmAction('Réactiver ce véhicule ?', () => resumeVehicle(${v.id}))">Réactiver</button>
+        <button class="text-xs text-gray-500 hover:underline" onclick="confirmAction('Archiver ce véhicule ?', () => archiveVehicle(${v.id}))">Archiver</button>`;
+    } else if (v.status === 'archived') {
+      actions = `
+        <button class="text-xs text-[#005F02] hover:underline" onclick="confirmAction('Restaurer ce véhicule ?', () => restoreVehicle(${v.id}))">Restaurer</button>`;
+    }
+    return `
+      <tr class="border-b last:border-0">
+        <td class="py-2 font-medium">${esc(v.name)}</td>
+        <td class="py-2 text-gray-500">${esc(v.brand)} ${esc(v.model)}${v.year ? ` (${v.year})` : ''}</td>
+        <td class="py-2">${esc(v.license_plate)}</td>
+        <td class="py-2">${FUEL_LABELS[v.fuel_type] || esc(v.fuel_type)}</td>
+        <td class="py-2">${STATUS_BADGE[v.status] || esc(v.status)}</td>
+        <td class="py-2 text-right whitespace-nowrap">${actions}</td>
+      </tr>`;
+  }).join('');
+}
+
+document.querySelectorAll('.vehicle-tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.vehicle-tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderVehiclesTab(btn.dataset.vtab);
+  });
+});
+
+document.getElementById('btn-add-vehicle').addEventListener('click', () => openVehicleModal());
+
+function openVehicleModal(vehicle = null) {
+  editingVehicleId = vehicle ? vehicle.id : null;
+  document.getElementById('modal-vehicle-title').textContent =
+    vehicle ? 'Modifier le véhicule' : 'Ajouter un véhicule';
+  document.getElementById('v-name').value    = vehicle?.name          || '';
+  document.getElementById('v-brand').value   = vehicle?.brand         || '';
+  document.getElementById('v-model').value   = vehicle?.model         || '';
+  document.getElementById('v-plate').value   = vehicle?.license_plate || '';
+  document.getElementById('v-fuel').value    = vehicle?.fuel_type     || '';
+  document.getElementById('v-mileage').value = vehicle?.initial_mileage ?? '';
+  document.getElementById('v-year').value    = vehicle?.year          || '';
+  document.getElementById('v-vin').value     = vehicle?.vin           || '';
+  document.getElementById('vehicle-form-error').classList.add('hidden');
+  document.getElementById('modal-vehicle').classList.remove('hidden');
+}
+
+function openEditVehicle(id) {
+  const v = allVehicles.find(v => v.id === id);
+  if (v) openVehicleModal(v);
+}
+
+['modal-vehicle-close', 'modal-vehicle-cancel'].forEach(id => {
+  document.getElementById(id).addEventListener('click', () => {
+    document.getElementById('modal-vehicle').classList.add('hidden');
+  });
+});
+
+document.getElementById('btn-save-vehicle').addEventListener('click', async () => {
+  const errEl = document.getElementById('vehicle-form-error');
+  errEl.classList.add('hidden');
+
+  const name          = document.getElementById('v-name').value.trim();
+  const brand         = document.getElementById('v-brand').value.trim();
+  const model         = document.getElementById('v-model').value.trim();
+  const license_plate = document.getElementById('v-plate').value.trim();
+  const fuel_type     = document.getElementById('v-fuel').value;
+  const mileageRaw    = document.getElementById('v-mileage').value;
+  const yearRaw       = document.getElementById('v-year').value;
+  const vin           = document.getElementById('v-vin').value.trim();
+
+  if (!name || !brand || !model || !license_plate || !fuel_type) {
+    errEl.textContent = 'Veuillez remplir tous les champs obligatoires (*).';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (!editingVehicleId && mileageRaw === '') {
+    errEl.textContent = 'Le kilométrage initial est obligatoire.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const body = { name, brand, model, license_plate, fuel_type };
+  if (mileageRaw !== '') body.initial_mileage = parseFloat(mileageRaw);
+  if (yearRaw)           body.year = parseInt(yearRaw);
+  if (vin)               body.vin = vin;
+
+  const isEdit = editingVehicleId !== null;
+  const res = await apiFetch(
+    isEdit ? `${API}/vehicles/${editingVehicleId}` : `${API}/vehicles`,
+    { method: isEdit ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+  if (!res) return;
+  if (res.ok) {
+    document.getElementById('modal-vehicle').classList.add('hidden');
+    loadVehicles();
+  } else {
+    const json = await res.json().catch(() => ({}));
+    errEl.textContent = json.detail || 'Erreur lors de l\'enregistrement.';
+    errEl.classList.remove('hidden');
+  }
+});
+
+async function vehicleAction(path) {
+  const res = await apiFetch(`${API}/vehicles/${path}`, { method: 'POST' });
+  if (res && res.ok) loadVehicles();
+  else if (res) { const j = await res.json().catch(() => ({})); alert(j.detail || 'Erreur.'); }
+}
+
+function pauseVehicle(id)   { vehicleAction(`${id}/pause`); }
+function resumeVehicle(id)  { vehicleAction(`${id}/resume`); }
+function archiveVehicle(id) { vehicleAction(`${id}/archive`); }
+function restoreVehicle(id) { vehicleAction(`${id}/restore`); }
+
+// ── Drivers management ────────────────────────────────────────────────────────
+let activeVehiclesList = [];
+
+async function loadDriverAssignments() {
+  document.getElementById('drivers-mgmt-loading').classList.remove('hidden');
+  document.getElementById('drivers-mgmt-table').classList.add('hidden');
+  document.getElementById('empty-drivers-mgmt').classList.add('hidden');
+  try {
+    const res = await apiFetch(`${API}/vehicles`);
+    if (!res || !res.ok) return;
+    const json = await res.json();
+    activeVehiclesList = json.data || [];
+
+    const results = await Promise.all(
+      activeVehiclesList.map(v =>
+        apiFetch(`${API}/vehicles/${v.id}/drivers`)
+          .then(r => r && r.ok ? r.json() : { data: [] })
+          .then(d => ({ vehicle: v, drivers: d.data || [] }))
+      )
+    );
+    renderDriverAssignments(results);
+    updateAssignVehicleSelect(activeVehiclesList);
+  } catch (e) {
+    console.error('Erreur chargement chauffeurs', e);
+  } finally {
+    document.getElementById('drivers-mgmt-loading').classList.add('hidden');
+  }
+}
+
+function renderDriverAssignments(vehiclesWithDrivers) {
+  const tbody = document.getElementById('drivers-mgmt-tbody');
+  const table = document.getElementById('drivers-mgmt-table');
+  const empty = document.getElementById('empty-drivers-mgmt');
+
+  const rows = [];
+  vehiclesWithDrivers.forEach(({ vehicle, drivers }) => {
+    drivers.forEach(d => {
+      const badge = d.driving_status
+        ? '<span class="badge-active   text-xs px-2 py-0.5 rounded-full font-medium">En conduite</span>'
+        : '<span class="badge-inactive text-xs px-2 py-0.5 rounded-full font-medium">Inactif</span>';
+      rows.push(`
+        <tr class="border-b last:border-0">
+          <td class="py-2 font-medium">${esc(d.full_name)}</td>
+          <td class="py-2 text-gray-500">${esc(vehicle.name)}</td>
+          <td class="py-2">${badge}</td>
+          <td class="py-2 text-right">
+            <button class="text-xs text-red-600 hover:underline"
+              onclick="confirmAction('Retirer ce chauffeur du véhicule ?', () => removeDriver(${vehicle.id}, ${d.id}))">
+              Retirer
+            </button>
+          </td>
+        </tr>`);
+    });
+  });
+
+  if (rows.length === 0) {
+    table.classList.add('hidden');
+    empty.classList.remove('hidden');
+  } else {
+    empty.classList.add('hidden');
+    table.classList.remove('hidden');
+    tbody.innerHTML = rows.join('');
+  }
+}
+
+function updateAssignVehicleSelect(vehicles) {
+  const select = document.getElementById('assign-vehicle-id');
+  select.innerHTML = vehicles.length
+    ? vehicles.map(v => `<option value="${v.id}">${esc(v.name)} — ${esc(v.license_plate)}</option>`).join('')
+    : '<option value="">Aucun véhicule actif</option>';
+}
+
+document.getElementById('btn-assign-driver').addEventListener('click', () => {
+  document.getElementById('assign-error').classList.add('hidden');
+  document.getElementById('assign-success').classList.add('hidden');
+  document.getElementById('assign-driver-id').value = '';
+  updateAssignVehicleSelect(activeVehiclesList);
+  document.getElementById('modal-assign-driver').classList.remove('hidden');
+});
+
+['modal-assign-close', 'modal-assign-cancel'].forEach(id => {
+  document.getElementById(id).addEventListener('click', () => {
+    document.getElementById('modal-assign-driver').classList.add('hidden');
+  });
+});
+
+document.getElementById('btn-do-assign').addEventListener('click', async () => {
+  const errEl = document.getElementById('assign-error');
+  const okEl  = document.getElementById('assign-success');
+  errEl.classList.add('hidden');
+  okEl.classList.add('hidden');
+
+  const vehicleId = document.getElementById('assign-vehicle-id').value;
+  const driverIdRaw = document.getElementById('assign-driver-id').value.trim();
+
+  if (!vehicleId || !driverIdRaw) {
+    errEl.textContent = 'Veuillez sélectionner un véhicule et entrer l\'ID du chauffeur.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const res = await apiFetch(`${API}/vehicles/${vehicleId}/drivers`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driver_id: parseInt(driverIdRaw) }),
+  });
+  if (!res) return;
+  if (res.ok) {
+    okEl.textContent = 'Chauffeur assigné avec succès.';
+    okEl.classList.remove('hidden');
+    setTimeout(() => {
+      document.getElementById('modal-assign-driver').classList.add('hidden');
+      loadDriverAssignments();
+    }, 1200);
+  } else {
+    const json = await res.json().catch(() => ({}));
+    errEl.textContent = json.detail || 'Erreur lors de l\'assignation.';
+    errEl.classList.remove('hidden');
+  }
+});
+
+async function removeDriver(vehicleId, driverId) {
+  const res = await apiFetch(`${API}/vehicles/${vehicleId}/drivers/${driverId}`, { method: 'DELETE' });
+  if (res && res.ok) loadDriverAssignments();
+  else if (res) { const j = await res.json().catch(() => ({})); alert(j.detail || 'Erreur.'); }
+}
+
+// ── Confirm modal ─────────────────────────────────────────────────────────────
+let confirmCallback = null;
+
+function confirmAction(msg, callback) {
+  document.getElementById('confirm-msg').textContent = msg;
+  confirmCallback = callback;
+  document.getElementById('modal-confirm').classList.remove('hidden');
+}
+
+document.getElementById('confirm-cancel').addEventListener('click', () => {
+  document.getElementById('modal-confirm').classList.add('hidden');
+  confirmCallback = null;
+});
+
+document.getElementById('confirm-ok').addEventListener('click', () => {
+  document.getElementById('modal-confirm').classList.add('hidden');
+  if (confirmCallback) confirmCallback();
+  confirmCallback = null;
 });
 
 // ── Boot ──────────────────────────────────────────────────────────────────────

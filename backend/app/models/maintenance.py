@@ -8,7 +8,9 @@ class Maintenance(Base):
     __tablename__ = "maintenance"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    vehicle_id: Mapped[int] = mapped_column(Integer, ForeignKey("vehicles.id"), unique=True, nullable=False)
+    vehicle_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("vehicles.id"), unique=True, nullable=False
+    )
     last_oil_change_km: Mapped[int | None] = mapped_column(Integer, nullable=True)
     insurance_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)
     inspection_expiry: Mapped[date | None] = mapped_column(Date, nullable=True)

@@ -1,0 +1,170 @@
+{% extends "base.html.j2" %}
+
+{% block title %}Rapport de flotte — {{ company_name or owner_name }}{% endblock %}
+{% block title_h1 %}Rapport de flotte{% endblock %}
+
+{% block content %}
+
+  <h2>Synthèse exécutive</h2>
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="label">Dépense totale</div>
+      <div class="value">{{ totals.total_spend_fcfa | format_fcfa }}</div>
+      <div class="sub">sur la période sélectionnée</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Litres consommés</div>
+      <div class="value">{{ totals.total_litres | format_number(2) }} L</div>
+      <div class="sub">{{ totals.entries_count }} plein{{ 's' if totals.entries_count > 1 else '' }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Distance totale</div>
+      <div class="value">{{ totals.total_km | format_number(0) }} km</div>
+      <div class="sub">conso. moyenne {{ totals.avg_consumption | format_number(2) }} L/100km</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Véhicules actifs</div>
+      <div class="value">{{ totals.active_vehicles }}</div>
+      <div class="sub">flotte gérée</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Conducteurs</div>
+      <div class="value">{{ totals.active_drivers }}</div>
+      <div class="sub">comptes actifs</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Coût moyen / km</div>
+      <div class="value">{{ totals.cost_per_km | format_fcfa }}</div>
+      <div class="sub">indicateur d'efficacité</div>
+    </div>
+  </div>
+
+  <h2>Performance par véhicule</h2>
+  {% if vehicles %}
+    <table>
+      <thead>
+        <tr>
+          <th>Véhicule</th>
+          <th class="num">Dépense (FCFA)</th>
+          <th class="num">Litres</th>
+          <th class="num">Distance (km)</th>
+          <th class="num">Conso. L/100km</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in vehicles %}
+        <tr>
+          <td>{{ v.name }}</td>
+          <td class="num">{{ v.spend_fcfa | format_fcfa }}</td>
+          <td class="num">{{ v.litres | format_number(2) }}</td>
+          <td class="num">{{ v.distance_km | format_number(0) }}</td>
+          <td class="num">{% if v.avg_consumption %}{{ v.avg_consumption | format_number(2) }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">Aucune donnée pour la période sélectionnée.</p>
+  {% endif %}
+
+  <h2>Tendance mensuelle des dépenses</h2>
+  {% if monthly_trend %}
+    <table>
+      <thead>
+        <tr>
+          <th>Mois</th>
+          <th class="num">Dépense (FCFA)</th>
+          <th class="num">Pleins</th>
+          <th style="width: 40%;">Volume</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in monthly_trend %}
+        <tr>
+          <td>{{ m.label }}</td>
+          <td class="num">{{ m.spend_fcfa | format_fcfa }}</td>
+          <td class="num">{{ m.entries }}</td>
+          <td>
+            <div class="bar-track">
+              <div class="bar-fill" style="width: {{ m.pct }}%;"></div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">Aucune dépense enregistrée sur la période.</p>
+  {% endif %}
+
+  <h2>Conducteurs</h2>
+  {% if drivers %}
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Statut</th>
+          <th>Véhicule actif</th>
+          <th class="num">Pleins (période)</th>
+          <th class="num">Dépense (FCFA)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in drivers %}
+        <tr>
+          <td>{{ d.full_name }}</td>
+          <td>
+            {% if d.is_disabled %}
+              <span class="badge badge-muted">Désactivé</span>
+            {% elif d.driving_status %}
+              <span class="badge badge-ok">En conduite</span>
+            {% else %}
+              <span class="badge badge-muted">Disponible</span>
+            {% endif %}
+          </td>
+          <td>{{ d.active_vehicle_name or '—' }}</td>
+          <td class="num">{{ d.entries }}</td>
+          <td class="num">{{ d.spend_fcfa | format_fcfa }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">Aucun conducteur enregistré.</p>
+  {% endif %}
+
+  <h2>Alertes &amp; anomalies</h2>
+  {% if alerts %}
+    <table>
+      <thead>
+        <tr>
+          <th>Véhicule</th>
+          <th>Type</th>
+          <th>Sévérité</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in alerts %}
+        <tr>
+          <td>{{ a.vehicle_name }}</td>
+          <td>{{ a.type_label }}</td>
+          <td>
+            {% if a.severity == 'critical' %}
+              <span class="badge badge-critical">Critique</span>
+            {% elif a.severity == 'warning' %}
+              <span class="badge badge-warning">Avertissement</span>
+            {% else %}
+              <span class="badge badge-muted">Info</span>
+            {% endif %}
+          </td>
+          <td>{{ a.message }}{% if a.detail %} — {{ a.detail }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">Aucune alerte active. Bonne santé de la flotte.</p>
+  {% endif %}
+
+{% endblock %}

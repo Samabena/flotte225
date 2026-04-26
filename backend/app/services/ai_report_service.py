@@ -6,6 +6,7 @@ AI Report Service — Sprint 8
 Flow: build fleet snapshot → structured French prompt → OpenRouter LLM → email via SendGrid.
 Non-blocking on email failure; raises on plan/quota violations.
 """
+
 import logging
 from datetime import date, datetime, timezone
 
@@ -16,39 +17,30 @@ from app.core.config import settings
 from app.models.fuel_entry import FuelEntry
 from app.models.maintenance import Maintenance
 from app.models.report_schedule import ReportSchedule
-from app.models.subscription import OwnerSubscription, SubscriptionPlan
 from app.models.vehicle import Vehicle
 from app.services.alert_service import compute_alerts
 from app.services.email_service import send_email
 
 logger = logging.getLogger(__name__)
 
-_PRO_MONTHLY_LIMIT = 5
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _TIMEOUT = 90.0
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
-def generate_report_on_demand(db: Session, owner_id: int, owner_email: str, owner_name: str) -> dict:
+
+def generate_report_on_demand(
+    db: Session, owner_id: int, owner_email: str, owner_name: str
+) -> dict:
     """
     Generate a report immediately for the given owner.
     Checks plan quota, calls LLM, emails result.
     Returns {"status": "sent", "used": N, "limit": N|None}.
     Raises ValueError on quota/plan violation.
     """
-    plan, sub = _get_plan_and_sub(db, owner_id)
-    _assert_ai_reports_allowed(plan)
-
     schedule = _get_or_create_schedule(db, owner_id)
     _maybe_reset_monthly_counter(db, schedule)
-
-    limit = plan.ai_reports_per_month  # None = unlimited (Business)
-    if limit is not None and schedule.ai_reports_used_month >= limit:
-        raise ValueError(
-            f"Limite mensuelle atteinte ({limit} rapport(s) par mois sur le plan Pro). "
-            "Passez au plan Business pour des rapports illimités."
-        )
 
     report_text = _call_openrouter(db, owner_id, owner_name)
     _send_report_email(owner_email, owner_name, report_text)
@@ -61,7 +53,7 @@ def generate_report_on_demand(db: Session, owner_id: int, owner_email: str, owne
     return {
         "status": "sent",
         "used": schedule.ai_reports_used_month,
-        "limit": limit,
+        "limit": None,
     }
 
 
@@ -70,14 +62,14 @@ def get_schedule(db: Session, owner_id: int) -> ReportSchedule:
     return _get_or_create_schedule(db, owner_id)
 
 
-def update_schedule(db: Session, owner_id: int, enabled: bool, frequency: str | None) -> ReportSchedule:
+def update_schedule(
+    db: Session, owner_id: int, enabled: bool, frequency: str | None
+) -> ReportSchedule:
     """Enable/disable scheduled reports and set frequency."""
     if enabled and frequency not in ("weekly", "monthly"):
-        raise ValueError("La fréquence doit être 'weekly' ou 'monthly' pour activer les rapports planifiés.")
-
-    plan, _ = _get_plan_and_sub(db, owner_id)
-    if enabled:
-        _assert_scheduled_reports_allowed(plan)
+        raise ValueError(
+            "La fréquence doit être 'weekly' ou 'monthly' pour activer les rapports planifiés."
+        )
 
     schedule = _get_or_create_schedule(db, owner_id)
     schedule.enabled = enabled
@@ -96,7 +88,7 @@ def run_scheduled_reports(db: Session) -> None:
     from app.models.user import User
 
     now = datetime.now(timezone.utc)
-    schedules = db.query(ReportSchedule).filter(ReportSchedule.enabled == True).all()
+    schedules = db.query(ReportSchedule).filter(ReportSchedule.enabled.is_(True)).all()
 
     for sched in schedules:
         if not _cadence_elapsed(sched, now):
@@ -105,8 +97,6 @@ def run_scheduled_reports(db: Session) -> None:
         if not owner or not owner.is_active:
             continue
         try:
-            plan, _ = _get_plan_and_sub(db, sched.owner_id)
-            _assert_scheduled_reports_allowed(plan)
             _maybe_reset_monthly_counter(db, sched)
 
             report_text = _call_openrouter(db, sched.owner_id, owner.full_name)
@@ -117,35 +107,14 @@ def run_scheduled_reports(db: Session) -> None:
             sched.ai_reports_used_month += 1
             db.commit()
         except Exception as exc:
-            logger.error("Scheduled AI report failed for owner %s: %s", sched.owner_id, exc)
+            logger.error(
+                "Scheduled AI report failed for owner %s: %s", sched.owner_id, exc
+            )
             sched.last_status = "failed"
             db.commit()
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
-
-def _get_plan_and_sub(db: Session, owner_id: int):
-    sub = (
-        db.query(OwnerSubscription)
-        .filter(OwnerSubscription.owner_id == owner_id, OwnerSubscription.is_active == True)
-        .first()
-    )
-    if not sub:
-        raise ValueError("Aucun abonnement actif.")
-    plan = db.get(SubscriptionPlan, sub.plan_id)
-    if not plan:
-        raise ValueError("Plan introuvable.")
-    return plan, sub
-
-
-def _assert_ai_reports_allowed(plan: SubscriptionPlan) -> None:
-    if plan.name == "starter":
-        raise ValueError("Les rapports IA ne sont pas disponibles sur le plan Starter.")
-
-
-def _assert_scheduled_reports_allowed(plan: SubscriptionPlan) -> None:
-    if plan.name != "business":
-        raise ValueError("Les rapports planifiés nécessitent un abonnement Business.")
 
 
 def _get_or_create_schedule(db: Session, owner_id: int) -> ReportSchedule:
@@ -179,10 +148,14 @@ def _cadence_elapsed(sched: ReportSchedule, now: datetime) -> bool:
 
 def _build_fleet_snapshot(db: Session, owner_id: int) -> dict:
     """Collect fleet data into a JSON-serialisable dict for the LLM prompt."""
-    vehicles = db.query(Vehicle).filter(
-        Vehicle.owner_id == owner_id,
-        Vehicle.status != "archived",
-    ).all()
+    vehicles = (
+        db.query(Vehicle)
+        .filter(
+            Vehicle.owner_id == owner_id,
+            Vehicle.status != "archived",
+        )
+        .all()
+    )
 
     vehicle_data = []
     for v in vehicles:
@@ -193,27 +166,49 @@ def _build_fleet_snapshot(db: Session, owner_id: int) -> dict:
             .limit(10)
             .all()
         )
-        maintenance = db.query(Maintenance).filter(Maintenance.vehicle_id == v.id).first()
-        vehicle_data.append({
-            "name": v.name,
-            "brand": v.brand,
-            "model": v.model,
-            "status": v.status,
-            "fuel_entries": [
-                {
-                    "date": str(e.date),
-                    "liters": float(e.liters),
-                    "amount_fcfa": float(e.amount_fcfa),
-                    "consumption_per_100km": float(e.consumption_per_100km) if e.consumption_per_100km else None,
-                }
-                for e in entries
-            ],
-            "maintenance": {
-                "last_oil_change_km": maintenance.last_oil_change_km if maintenance else None,
-                "insurance_expiry": str(maintenance.insurance_expiry) if maintenance and maintenance.insurance_expiry else None,
-                "inspection_expiry": str(maintenance.inspection_expiry) if maintenance and maintenance.inspection_expiry else None,
-            } if maintenance else None,
-        })
+        maintenance = (
+            db.query(Maintenance).filter(Maintenance.vehicle_id == v.id).first()
+        )
+        vehicle_data.append(
+            {
+                "name": v.name,
+                "brand": v.brand,
+                "model": v.model,
+                "status": v.status,
+                "fuel_entries": [
+                    {
+                        "date": str(e.date),
+                        "liters": float(e.liters),
+                        "amount_fcfa": float(e.amount_fcfa),
+                        "consumption_per_100km": (
+                            float(e.consumption_per_100km)
+                            if e.consumption_per_100km
+                            else None
+                        ),
+                    }
+                    for e in entries
+                ],
+                "maintenance": (
+                    {
+                        "last_oil_change_km": (
+                            maintenance.last_oil_change_km if maintenance else None
+                        ),
+                        "insurance_expiry": (
+                            str(maintenance.insurance_expiry)
+                            if maintenance and maintenance.insurance_expiry
+                            else None
+                        ),
+                        "inspection_expiry": (
+                            str(maintenance.inspection_expiry)
+                            if maintenance and maintenance.inspection_expiry
+                            else None
+                        ),
+                    }
+                    if maintenance
+                    else None
+                ),
+            }
+        )
 
     alerts = compute_alerts(db, owner_id)
     alert_summary = [
@@ -281,10 +276,14 @@ def _call_openrouter(db: Session, owner_id: int, owner_name: str) -> str:
         return data["choices"][0]["message"]["content"]
     except httpx.TimeoutException:
         logger.error("OpenRouter timeout for owner %s", owner_id)
-        raise ValueError("Le service IA n'a pas répondu dans les délais. Réessayez dans quelques minutes.")
+        raise ValueError(
+            "Le service IA n'a pas répondu dans les délais. Réessayez dans quelques minutes."
+        )
     except Exception as exc:
         logger.error("OpenRouter error for owner %s: %s", owner_id, exc)
-        raise ValueError("Erreur lors de la génération du rapport IA. Réessayez plus tard.")
+        raise ValueError(
+            "Erreur lors de la génération du rapport IA. Réessayez plus tard."
+        )
 
 
 def _send_report_email(to: str, owner_name: str, report_text: str) -> None:
@@ -303,4 +302,7 @@ def _send_report_email(to: str, owner_name: str, report_text: str) -> None:
     """
     ok = send_email(to, "Votre rapport de flotte Flotte225", html)
     if not ok:
-        logger.warning("Failed to email AI report to %s — report was generated but not delivered", to)
+        logger.warning(
+            "Failed to email AI report to %s — report was generated but not delivered",
+            to,
+        )

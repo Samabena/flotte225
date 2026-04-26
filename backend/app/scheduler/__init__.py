@@ -1,9 +1,11 @@
 """
-APScheduler setup — Sprint 7 + Sprint 8
+APScheduler setup — Sprint 7 + Sprint 8 + Sprint 9
   US-035  Daily WhatsApp alert dispatch
   US-029  Periodic webhook dispatch (every WEBHOOK_INTERVAL_HOURS)
   US-033  Scheduled AI reports (weekly / monthly per owner config)
+  Sprint 9  Instant alert emails (every 15 min) + daily digest at 22:00
 """
+
 import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -31,7 +33,7 @@ def _daily_whatsapp_alerts() -> None:
                 db.query(User)
                 .filter(
                     User.role == "OWNER",
-                    User.is_active == True,
+                    User.is_active.is_(True),
                     User.whatsapp_number.isnot(None),
                     User.whatsapp_number != "",
                 )
@@ -39,7 +41,9 @@ def _daily_whatsapp_alerts() -> None:
             )
             for owner in owners:
                 alerts = compute_alerts(db, owner.id)
-                send_fleet_alerts_to_owner(owner.whatsapp_number, owner.full_name, alerts)
+                send_fleet_alerts_to_owner(
+                    owner.whatsapp_number, owner.full_name, alerts
+                )
         finally:
             db.close()
     except Exception as exc:
@@ -76,6 +80,36 @@ def _scheduled_ai_reports() -> None:
         logger.error("Scheduled AI reports job failed: %s", exc)
 
 
+def _instant_alert_emails() -> None:
+    """Every-15-min job: detect new/upgraded alerts and send instant emails."""
+    try:
+        from app.core.database import SessionLocal
+        from app.services.alert_email_service import process_instant_alert_emails
+
+        db = SessionLocal()
+        try:
+            process_instant_alert_emails(db)
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.error("Instant alert email job failed: %s", exc)
+
+
+def _daily_digest_emails() -> None:
+    """Daily 22:00 job: send summary digest of all unresolved alerts."""
+    try:
+        from app.core.database import SessionLocal
+        from app.services.alert_email_service import send_daily_digest_emails
+
+        db = SessionLocal()
+        try:
+            send_daily_digest_emails(db)
+        finally:
+            db.close()
+    except Exception as exc:
+        logger.error("Daily digest email job failed: %s", exc)
+
+
 def start_scheduler() -> None:
     if scheduler.running:
         return
@@ -104,9 +138,27 @@ def start_scheduler() -> None:
         replace_existing=True,
     )
 
+    # Instant alert emails — check every 15 minutes for new/upgraded alerts
+    scheduler.add_job(
+        _instant_alert_emails,
+        trigger=IntervalTrigger(minutes=15),
+        id="instant_alert_emails",
+        replace_existing=True,
+        max_instances=1,
+    )
+
+    # Daily alert digest at 22:00 Africa/Abidjan
+    scheduler.add_job(
+        _daily_digest_emails,
+        trigger=CronTrigger(hour=22, minute=0),
+        id="daily_digest_emails",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info(
-        "Scheduler started — WhatsApp@08:00, webhook every %sh, AI reports@:30",
+        "Scheduler started — WhatsApp@08:00, digest@22:00, instant_alerts every 15 min, "
+        "webhook every %sh, AI reports@:30",
         settings.WEBHOOK_INTERVAL_HOURS,
     )
 

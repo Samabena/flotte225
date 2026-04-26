@@ -42,7 +42,8 @@ class VehicleUpdate(BaseModel):
 class DriverSummary(BaseModel):
     id: int
     full_name: str
-    email: str
+    email: str | None = None
+    username: str | None = None
     driving_status: bool
 
     model_config = {"from_attributes": True}

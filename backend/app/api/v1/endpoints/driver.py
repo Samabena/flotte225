@@ -16,16 +16,24 @@ def _ok(data=None, message: str = ""):
 
 # ── US-022: View assigned vehicles ────────────────────────────────────────────
 
+
 @router.get("/vehicles", response_model=None)
-def my_vehicles(driver: User = Depends(get_current_driver), db: Session = Depends(get_db)):
+def my_vehicles(
+    driver: User = Depends(get_current_driver), db: Session = Depends(get_db)
+):
     vehicles = vehicle_service.get_driver_vehicles(db, driver.id)
     return _ok(data=[VehicleResponse.model_validate(v) for v in vehicles])
 
 
 # ── US-023: Activate driving status ──────────────────────────────────────────
 
+
 @router.post("/activate", response_model=None)
-def activate(body: ActivateRequest, driver: User = Depends(get_current_driver), db: Session = Depends(get_db)):
+def activate(
+    body: ActivateRequest,
+    driver: User = Depends(get_current_driver),
+    db: Session = Depends(get_db),
+):
     updated = vehicle_service.activate_driver(db, driver, body.vehicle_id)
     return _ok(
         data=DriverSummary.model_validate(updated),
@@ -34,7 +42,9 @@ def activate(body: ActivateRequest, driver: User = Depends(get_current_driver), 
 
 
 @router.post("/deactivate", response_model=None)
-def deactivate(driver: User = Depends(get_current_driver), db: Session = Depends(get_db)):
+def deactivate(
+    driver: User = Depends(get_current_driver), db: Session = Depends(get_db)
+):
     updated = vehicle_service.deactivate_driver(db, driver)
     return _ok(
         data=DriverSummary.model_validate(updated),

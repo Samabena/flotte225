@@ -25,9 +25,9 @@ The JWT middleware validates the token, injects `current_user` (id, role, plan) 
 ### Auth
 | Method | Path | Description | Auth |
 |---|---|---|---|
-| POST | `/api/v1/auth/register` | Register new account (OWNER or DRIVER) | No |
+| POST | `/api/v1/auth/register` | Register new OWNER account (DRIVER role blocked) | No |
 | POST | `/api/v1/auth/verify-email` | Submit OTP to activate account | No |
-| POST | `/api/v1/auth/login` | Login → returns JWT | No |
+| POST | `/api/v1/auth/login` | Login → returns JWT. Dual-mode: email+password (OWNER/ADMIN) or username+password (DRIVER) | No |
 | POST | `/api/v1/auth/logout` | Clear client token (frontend) | Yes |
 | GET | `/api/v1/auth/me` | Get current user profile + plan info | Yes |
 | PATCH | `/api/v1/auth/me` | Update profile (name, company, WhatsApp number) | Yes |
@@ -51,6 +51,19 @@ The JWT middleware validates the token, injects `current_user` (id, role, plan) 
 | GET | `/api/v1/vehicles/{id}/drivers` | List drivers assigned to vehicle | OWNER |
 | POST | `/api/v1/vehicles/{id}/drivers` | Assign a driver to vehicle | OWNER |
 | DELETE | `/api/v1/vehicles/{id}/drivers/{driver_id}` | Remove driver from vehicle | OWNER |
+
+---
+
+### Driver Management (Owner-provisioned)
+> **Added in feature: Owner-Managed Driver Access Control** — 2026-04-19
+
+| Method | Path | Description | Auth |
+|---|---|---|---|
+| POST | `/api/v1/drivers` | Create a driver account (username + password, no email) | OWNER |
+| GET | `/api/v1/drivers` | List owner's drivers (scoped to `owner_id = me`) | OWNER |
+| PATCH | `/api/v1/drivers/{id}/status` | Enable or disable a driver's login (`{"is_disabled": true/false}`) | OWNER |
+| PATCH | `/api/v1/drivers/{id}/password` | Reset a driver's password | OWNER |
+| DELETE | `/api/v1/drivers/{id}` | Permanently remove a driver (clears vehicle assignments, preserves logs) | OWNER |
 
 ---
 

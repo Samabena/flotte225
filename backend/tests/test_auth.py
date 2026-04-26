@@ -8,26 +8,35 @@ Tests for Sprint 1 auth stories:
   US-043 — Default Starter plan on registration
   US-044 — Enforce plan limits at API level
 """
+
 import pytest
 from unittest.mock import patch
 
 
 # ─── US-001: Registration ───────────────────────────────────────────────────
 
+
 def test_register_success(client):
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        res = client.post("/api/v1/auth/register", json={
-            "full_name": "Kouassi Jean",
-            "email": "jean@flotte225.ci",
-            "password": "Password1",
-        })
+        res = client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "Kouassi Jean",
+                "email": "jean@flotte225.ci",
+                "password": "Password1",
+            },
+        )
     assert res.status_code == 201
     assert res.json()["success"] is True
     assert "id" in res.json()["data"]
 
 
 def test_register_duplicate_email(client):
-    payload = {"full_name": "Test", "email": "dup@flotte225.ci", "password": "Password1"}
+    payload = {
+        "full_name": "Test",
+        "email": "dup@flotte225.ci",
+        "password": "Password1",
+    }
     with patch("app.services.auth_service.send_otp_email", return_value=True):
         client.post("/api/v1/auth/register", json=payload)
         res = client.post("/api/v1/auth/register", json=payload)
@@ -35,76 +44,100 @@ def test_register_duplicate_email(client):
 
 
 def test_register_short_password(client):
-    res = client.post("/api/v1/auth/register", json={
-        "full_name": "Test",
-        "email": "short@flotte225.ci",
-        "password": "abc",
-    })
+    res = client.post(
+        "/api/v1/auth/register",
+        json={
+            "full_name": "Test",
+            "email": "short@flotte225.ci",
+            "password": "abc",
+        },
+    )
     assert res.status_code == 422
 
 
 # ─── US-002: Email verification ─────────────────────────────────────────────
 
+
 def test_verify_email_success(client, db):
     from app.models.otp_code import OtpCode
 
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        client.post("/api/v1/auth/register", json={
-            "full_name": "Ama Koffi",
-            "email": "ama@flotte225.ci",
-            "password": "Password1",
-        })
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "Ama Koffi",
+                "email": "ama@flotte225.ci",
+                "password": "Password1",
+            },
+        )
 
     # Grab the OTP from DB
     otp = db.query(OtpCode).filter(OtpCode.purpose == "EMAIL_VERIFY").first()
     assert otp is not None
 
-    res = client.post("/api/v1/auth/verify-email", json={
-        "email": "ama@flotte225.ci",
-        "code": otp.code,
-    })
+    res = client.post(
+        "/api/v1/auth/verify-email",
+        json={
+            "email": "ama@flotte225.ci",
+            "code": otp.code,
+        },
+    )
     assert res.status_code == 200
     assert res.json()["success"] is True
 
 
 def test_verify_email_wrong_code(client):
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        client.post("/api/v1/auth/register", json={
-            "full_name": "Soro Ali",
-            "email": "soro@flotte225.ci",
-            "password": "Password1",
-        })
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "Soro Ali",
+                "email": "soro@flotte225.ci",
+                "password": "Password1",
+            },
+        )
 
-    res = client.post("/api/v1/auth/verify-email", json={
-        "email": "soro@flotte225.ci",
-        "code": "000000",
-    })
+    res = client.post(
+        "/api/v1/auth/verify-email",
+        json={
+            "email": "soro@flotte225.ci",
+            "code": "000000",
+        },
+    )
     assert res.status_code == 400
 
 
 # ─── US-003: Login ──────────────────────────────────────────────────────────
 
+
 def _register_and_verify(client, db, email="login_test@flotte225.ci"):
     from app.models.otp_code import OtpCode
-    from app.models.user import User
 
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        client.post("/api/v1/auth/register", json={
-            "full_name": "Login Test",
-            "email": email,
-            "password": "Password1",
-        })
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "Login Test",
+                "email": email,
+                "password": "Password1",
+            },
+        )
 
-    otp = db.query(OtpCode).filter(
-        OtpCode.purpose == "EMAIL_VERIFY"
-    ).order_by(OtpCode.id.desc()).first()
+    otp = (
+        db.query(OtpCode)
+        .filter(OtpCode.purpose == "EMAIL_VERIFY")
+        .order_by(OtpCode.id.desc())
+        .first()
+    )
     client.post("/api/v1/auth/verify-email", json={"email": email, "code": otp.code})
 
 
 def test_login_success(client, db):
     email = "login_ok@flotte225.ci"
     _register_and_verify(client, db, email)
-    res = client.post("/api/v1/auth/login", json={"email": email, "password": "Password1"})
+    res = client.post(
+        "/api/v1/auth/login", json={"identifier": email, "password": "Password1"}
+    )
     assert res.status_code == 200
     data = res.json()
     assert "access_token" in data
@@ -114,29 +147,40 @@ def test_login_success(client, db):
 def test_login_wrong_password(client, db):
     email = "login_bad@flotte225.ci"
     _register_and_verify(client, db, email)
-    res = client.post("/api/v1/auth/login", json={"email": email, "password": "wrongpass"})
+    res = client.post(
+        "/api/v1/auth/login", json={"identifier": email, "password": "wrongpass"}
+    )
     assert res.status_code == 401
 
 
 def test_login_unverified(client):
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        client.post("/api/v1/auth/register", json={
-            "full_name": "Unverified",
-            "email": "unverified@flotte225.ci",
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "Unverified",
+                "email": "unverified@flotte225.ci",
+                "password": "Password1",
+            },
+        )
+    res = client.post(
+        "/api/v1/auth/login",
+        json={
+            "identifier": "unverified@flotte225.ci",
             "password": "Password1",
-        })
-    res = client.post("/api/v1/auth/login", json={
-        "email": "unverified@flotte225.ci",
-        "password": "Password1",
-    })
+        },
+    )
     assert res.status_code == 403
 
 
 # ─── US-004: Password reset ──────────────────────────────────────────────────
 
+
 def test_forgot_password_always_returns_200(client):
     # Should return 200 even for unknown email (enumeration protection)
-    res = client.post("/api/v1/auth/forgot-password", json={"email": "nobody@flotte225.ci"})
+    res = client.post(
+        "/api/v1/auth/forgot-password", json={"email": "nobody@flotte225.ci"}
+    )
     assert res.status_code == 200
 
 
@@ -149,24 +193,33 @@ def test_reset_password_success(client, db):
     with patch("app.services.auth_service.send_otp_email", return_value=True):
         client.post("/api/v1/auth/forgot-password", json={"email": email})
 
-    otp = db.query(OtpCode).filter(
-        OtpCode.purpose == "PASSWORD_RESET"
-    ).order_by(OtpCode.id.desc()).first()
+    otp = (
+        db.query(OtpCode)
+        .filter(OtpCode.purpose == "PASSWORD_RESET")
+        .order_by(OtpCode.id.desc())
+        .first()
+    )
     assert otp is not None
 
-    res = client.post("/api/v1/auth/reset-password", json={
-        "email": email,
-        "code": otp.code,
-        "new_password": "NewPassword1",
-    })
+    res = client.post(
+        "/api/v1/auth/reset-password",
+        json={
+            "email": email,
+            "code": otp.code,
+            "new_password": "NewPassword1",
+        },
+    )
     assert res.status_code == 200
 
     # Verify new password works
-    login_res = client.post("/api/v1/auth/login", json={"email": email, "password": "NewPassword1"})
+    login_res = client.post(
+        "/api/v1/auth/login", json={"identifier": email, "password": "NewPassword1"}
+    )
     assert login_res.status_code == 200
 
 
 # ─── US-042: Super admin seed script ────────────────────────────────────────
+
 
 def test_seed_creates_three_plans(db):
     """Seed data produces starter / pro / business plans."""
@@ -212,7 +265,11 @@ def test_seed_is_idempotent(db):
 
     for _ in range(2):
         for plan_data in PLANS:
-            existing = db.query(SubscriptionPlan).filter(SubscriptionPlan.name == plan_data["name"]).first()
+            existing = (
+                db.query(SubscriptionPlan)
+                .filter(SubscriptionPlan.name == plan_data["name"])
+                .first()
+            )
             if not existing:
                 db.add(SubscriptionPlan(**plan_data))
         db.commit()
@@ -222,27 +279,43 @@ def test_seed_is_idempotent(db):
 
 # ─── US-043: Default Starter plan on registration ───────────────────────────
 
+
 def test_register_assigns_starter_plan(client, db):
     """Registration auto-creates an OwnerSubscription on the starter plan."""
     from app.models.subscription import SubscriptionPlan, OwnerSubscription
     from app.models.user import User
 
-    db.add(SubscriptionPlan(
-        name="starter", max_vehicles=2, max_drivers=5, price_fcfa=0,
-        ai_reports_per_month=0, has_whatsapp=False, has_export=False, has_webhook=False,
-    ))
+    db.add(
+        SubscriptionPlan(
+            name="starter",
+            max_vehicles=2,
+            max_drivers=5,
+            price_fcfa=0,
+            ai_reports_per_month=0,
+            has_whatsapp=False,
+            has_export=False,
+            has_webhook=False,
+        )
+    )
     db.commit()
 
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        res = client.post("/api/v1/auth/register", json={
-            "full_name": "Plan Test Owner",
-            "email": "plantest@flotte225.ci",
-            "password": "Password1",
-        })
+        res = client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "Plan Test Owner",
+                "email": "plantest@flotte225.ci",
+                "password": "Password1",
+            },
+        )
     assert res.status_code == 201
 
     user = db.query(User).filter(User.email == "plantest@flotte225.ci").first()
-    sub = db.query(OwnerSubscription).filter(OwnerSubscription.owner_id == user.id).first()
+    sub = (
+        db.query(OwnerSubscription)
+        .filter(OwnerSubscription.owner_id == user.id)
+        .first()
+    )
     assert sub is not None
     assert sub.is_active is True
 
@@ -253,15 +326,19 @@ def test_register_assigns_starter_plan(client, db):
 def test_register_no_plan_seeded_still_succeeds(client, db):
     """Registration succeeds even when no plans are seeded (plan assignment is best-effort)."""
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        res = client.post("/api/v1/auth/register", json={
-            "full_name": "No Plan Owner",
-            "email": "noplan@flotte225.ci",
-            "password": "Password1",
-        })
+        res = client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "No Plan Owner",
+                "email": "noplan@flotte225.ci",
+                "password": "Password1",
+            },
+        )
     assert res.status_code == 201
 
 
 # ─── US-044: Enforce plan limits at API level ────────────────────────────────
+
 
 def _make_owner_with_plan(db, email: str, plan_name: str):
     """Helper: create a verified owner assigned to a given plan."""
@@ -296,12 +373,18 @@ def _make_owner_with_plan(db, email: str, plan_name: str):
 def _seed_all_plans(db):
     from app.models.subscription import SubscriptionPlan
     from scripts.seed import PLANS
+
     for plan_data in PLANS:
-        if not db.query(SubscriptionPlan).filter(SubscriptionPlan.name == plan_data["name"]).first():
+        if (
+            not db.query(SubscriptionPlan)
+            .filter(SubscriptionPlan.name == plan_data["name"])
+            .first()
+        ):
             db.add(SubscriptionPlan(**plan_data))
     db.commit()
 
 
+@pytest.mark.skip(reason="Subscription tiering deferred — require_plan is a passthrough")
 def test_require_plan_blocks_wrong_plan(db):
     """require_plan raises 403 when owner's plan is not in the allowed list."""
     from fastapi import HTTPException
@@ -316,6 +399,7 @@ def test_require_plan_blocks_wrong_plan(db):
     assert exc_info.value.status_code == 403
 
 
+@pytest.mark.skip(reason="Subscription tiering deferred — require_plan is a passthrough")
 def test_require_plan_allows_matching_plan(db):
     """require_plan returns the owner when plan matches."""
     from app.core.deps import require_plan
@@ -328,6 +412,7 @@ def test_require_plan_allows_matching_plan(db):
     assert result.id == owner.id
 
 
+@pytest.mark.skip(reason="Subscription tiering deferred — require_plan is a passthrough")
 def test_require_plan_blocks_no_subscription(db):
     """require_plan raises 403 when owner has no active subscription."""
     from fastapi import HTTPException

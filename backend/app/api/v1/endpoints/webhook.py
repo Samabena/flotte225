@@ -3,6 +3,7 @@ Webhook endpoint — Sprint 8
   US-029  POST /webhook/trigger  — Manually trigger webhook dispatch
   US-030  GET  /webhook/status   — Last dispatch timestamp + HTTP status
 """
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 

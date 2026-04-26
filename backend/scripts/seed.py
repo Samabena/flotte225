@@ -26,7 +26,7 @@ PLANS = [
     {
         "name": "starter",
         "max_vehicles": 2,
-        "max_drivers": 5,
+        "max_drivers": 3,
         "price_fcfa": 0,
         "ai_reports_per_month": 0,
         "has_whatsapp": False,
@@ -36,7 +36,7 @@ PLANS = [
     {
         "name": "pro",
         "max_vehicles": 15,
-        "max_drivers": None,
+        "max_drivers": 20,
         "price_fcfa": 9900,
         "ai_reports_per_month": 5,
         "has_whatsapp": True,

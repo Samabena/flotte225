@@ -1,13 +1,14 @@
-from typing import Literal
 from pydantic import BaseModel, EmailStr, field_validator
 
 
 class RegisterRequest(BaseModel):
+    """Self-registration — OWNER only. DRIVER accounts are created by owners."""
+
     full_name: str
     email: EmailStr
     password: str
+    company_name: str | None = None
     phone: str | None = None
-    role: Literal["OWNER", "DRIVER"] = "OWNER"
 
     @field_validator("password")
     @classmethod
@@ -30,7 +31,9 @@ class VerifyEmailRequest(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    """Dual-mode login: email for OWNER/SUPER_ADMIN, username for DRIVER."""
+
+    identifier: str  # email address or plain username
     password: str
 
 

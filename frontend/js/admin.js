@@ -4,11 +4,11 @@ const API = '/api/v1';
 const token = () => localStorage.getItem('access_token');
 const authHeader = () => ({ 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' });
 
-if (!token()) window.location.href = 'index.html';
+if (!token()) window.location.href = '/';
 
 document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.clear();
-  window.location.href = 'index.html';
+  window.location.href = '/';
 });
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -30,7 +30,7 @@ async function loadUsers(q = '', role = '') {
   try {
     const res = await fetch(`${API}/admin/users?${params}`, { headers: authHeader() });
     if (res.status === 401 || res.status === 403) {
-      window.location.href = 'index.html';
+      window.location.href = '/';
       return;
     }
     users = (await res.json()).data;

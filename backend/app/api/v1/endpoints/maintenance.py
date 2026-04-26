@@ -17,6 +17,7 @@ def _ok(data=None, message: str = ""):
 
 # ── US-015: Maintenance record ────────────────────────────────────────────────
 
+
 @router.get("/vehicles/{vehicle_id}/maintenance", response_model=None)
 def get_maintenance(
     vehicle_id: int,
@@ -37,10 +38,14 @@ def update_maintenance(
 ):
     """US-015 — Update maintenance record."""
     record = maintenance_service.update_maintenance(db, owner.id, vehicle_id, body)
-    return _ok(data=MaintenanceResponse.model_validate(record), message="Maintenance mise à jour")
+    return _ok(
+        data=MaintenanceResponse.model_validate(record),
+        message="Maintenance mise à jour",
+    )
 
 
 # ── US-026/027/028: Alert engine ──────────────────────────────────────────────
+
 
 @router.get("/owner/alerts", response_model=None)
 def get_alerts(

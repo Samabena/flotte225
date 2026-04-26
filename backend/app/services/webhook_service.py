@@ -6,6 +6,7 @@ Webhook Service — Sprint 8
 Silently disabled if WEBHOOK_URL env var is not set.
 Payload: fleet summary snapshot delivered to the configured endpoint.
 """
+
 import logging
 from datetime import datetime, timezone
 
@@ -21,6 +22,7 @@ _TIMEOUT = 15.0
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 def get_webhook_status(db: Session, owner_id: int) -> WebhookState | None:
     """Return the owner's webhook state record, or None if never dispatched."""
@@ -57,11 +59,7 @@ def run_webhook_dispatch(db: Session) -> None:
 
     from app.models.user import User
 
-    owners = (
-        db.query(User)
-        .filter(User.role == "OWNER", User.is_active == True)
-        .all()
-    )
+    owners = db.query(User).filter(User.role == "OWNER", User.is_active.is_(True)).all()
     for owner in owners:
         try:
             payload = _build_payload(db, owner.id)
@@ -77,6 +75,7 @@ def run_webhook_dispatch(db: Session) -> None:
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
+
 
 def _get_or_create_state(db: Session, owner_id: int) -> WebhookState:
     state = db.query(WebhookState).filter(WebhookState.owner_id == owner_id).first()
@@ -97,10 +96,14 @@ def _build_payload(db: Session, owner_id: int) -> dict:
     from app.services.alert_service import compute_alerts
 
     owner = db.get(User, owner_id)
-    vehicles = db.query(Vehicle).filter(
-        Vehicle.owner_id == owner_id,
-        Vehicle.status != "archived",
-    ).all()
+    vehicles = (
+        db.query(Vehicle)
+        .filter(
+            Vehicle.owner_id == owner_id,
+            Vehicle.status != "archived",
+        )
+        .all()
+    )
 
     vehicle_ids = [v.id for v in vehicles]
     total_spend = 0.0
@@ -108,7 +111,8 @@ def _build_payload(db: Session, owner_id: int) -> dict:
         total_spend = (
             db.query(func.coalesce(func.sum(FuelEntry.amount_fcfa), 0))
             .filter(FuelEntry.vehicle_id.in_(vehicle_ids))
-            .scalar() or 0
+            .scalar()
+            or 0
         )
 
     alerts = compute_alerts(db, owner_id)

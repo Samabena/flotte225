@@ -2,9 +2,9 @@
 
 - **Sprint Length:** 2 weeks
 - **Sprint Capacity:** 20 story points
-- **Total Estimated Stories:** 46
-- **Total Story Points:** 149
-- **Sprints to Full Product:** 8 sprints (16 weeks)
+- **Total Estimated Stories:** 49
+- **Total Story Points:** 159
+- **Sprints to Full Product:** 9 sprints (18 weeks)
 
 ---
 
@@ -126,6 +126,20 @@
 
 ---
 
+## 🏃 Sprint 9 — Driver Access Management
+*10 / 20 story points*
+*Goal: Drivers can no longer self-register. Owners provision driver accounts via username/password, manage credentials (disable / reset / remove), and each owner's driver list is fully isolated from other owners.*
+
+| ID | Story | Priority | Points |
+|----|-------|----------|--------|
+| US-047 | Owner creates driver account with username/password | Must Have | 5 |
+| US-048 | Owner disables / removes / resets driver credentials | Must Have | 3 |
+| US-049 | Owner views isolated driver list | Must Have | 2 |
+
+**Dependencies:** Sprints 1–2 (auth foundation + vehicle management)
+
+---
+
 ## 🔮 Future Backlog
 Items deferred — not in current scope.
 
@@ -138,4 +152,4 @@ Items deferred — not in current scope.
 
 ---
 
-*Generated: 2026-04-06 | Source SRS: docs/FULL-SRS.md | 8 sprints × 2 weeks = 16 weeks*
+*Updated: 2026-04-19 | Source SRS: docs/FULL-SRS.md | 9 sprints × 2 weeks = 18 weeks*

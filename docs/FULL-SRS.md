@@ -32,6 +32,7 @@
    - 4.12 WhatsApp Integration
    - 4.13 Super Admin
    - 4.14 Subscription Plans (SaaS)
+   - 4.15 Owner-Managed Driver Access Control
 5. [External Interface Requirements](#5-external-interface-requirements)
 6. [Non-Functional Requirements](#6-non-functional-requirements)
 7. [Subscription Plan Structure](#7-subscription-plan-structure)
@@ -137,7 +138,7 @@ Flotte225 is a standalone web application with a REST API backend and a static H
 | Role | Description | Created by |
 |---|---|---|
 | OWNER | Fleet administrator — manages vehicles, drivers, analytics | Self-registration |
-| DRIVER | Field operator — submits fuel entries, manages driving status | Self-registration |
+| DRIVER | Field operator — submits fuel entries, manages driving status | Owner-provisioned — created by their OWNER |
 | SUPER_ADMIN | System-level administrator — manages all accounts, billing, platform | System bootstrap (seed) |
 
 ### 3.2 Role Rules
@@ -145,12 +146,17 @@ Flotte225 is a standalone web application with a REST API backend and a static H
 - The role is selected at registration and **cannot be changed afterward** (FR-AUTH-05).
 - An OWNER may also act as a DRIVER (they can activate driving status and select a vehicle). A DRIVER cannot have OWNER privileges.
 - SUPER_ADMIN accounts are not created through the public registration flow; they are seeded or created by an existing SUPER_ADMIN.
+- DRIVER accounts are **not created through the public registration flow**. They are exclusively provisioned by their OWNER (see §4.15). Each driver account is bound to the owner who created it and is only visible to that owner.
 
 ### 3.3 Permission Matrix
 
 | Feature | DRIVER | OWNER | SUPER_ADMIN |
 |---|---|---|---|
-| Register / Login | ✅ | ✅ | ✅ |
+| Self-register (public form) | ❌ | ✅ | ❌ |
+| Login (username + password) | ✅ | — | — |
+| Login (email + password) | — | ✅ | ✅ |
+| Create / manage driver accounts | ❌ | ✅ | ❌ |
+| View own driver list (isolated per owner) | ❌ | ✅ | — |
 | Submit fuel entry | ✅ (if active) | ❌ | ❌ |
 | Edit/delete own fuel entries (< 24h) | ✅ | ❌ | ❌ |
 | View own fuel history (last 10) | ✅ | — | — |
@@ -180,12 +186,13 @@ Flotte225 is a standalone web application with a REST API backend and a static H
 
 #### 4.1.1 Registration
 
-**FR-AUTH-01** The system SHALL allow any visitor to register a new account by providing:
+**FR-AUTH-01** The system SHALL allow any visitor to self-register as an **OWNER** by providing:
 - Full company name
 - Full name
 - Email address (unique in the system)
 - Password
-- Role selection: OWNER or DRIVER
+
+DRIVER accounts SHALL NOT be self-registered through the public registration form. Driver registration is exclusively handled by OWNERs via the driver management interface (see §4.15).
 
 **FR-AUTH-02** The system SHALL reject registration if the email address already exists in the system, returning a clear error message.
 
@@ -197,7 +204,11 @@ Flotte225 is a standalone web application with a REST API backend and a static H
 
 #### 4.1.2 Login
 
-**FR-AUTH-06** The system SHALL authenticate users by validating email and password credentials.
+**FR-AUTH-06** The system SHALL support dual-mode login:
+- **OWNER / SUPER_ADMIN**: authenticated via **email + password**
+- **DRIVER**: authenticated via **username + password** (no email required)
+
+The login endpoint SHALL determine the mode automatically: if the submitted identifier contains `@`, treat it as an email (OWNER/ADMIN path); otherwise treat it as a username (DRIVER path).
 
 **FR-AUTH-07** Upon successful login, the system SHALL issue a signed JWT (HS256) with a 24-hour expiration. The token SHALL be stored in `localStorage` on the client.
 
@@ -619,6 +630,56 @@ Flotte225 is a standalone web application with a REST API backend and a static H
 
 ---
 
+### 4.15 Owner-Managed Driver Access Control
+
+*Access: OWNER only for driver provisioning. DRIVER for login only.*
+
+#### 4.15.1 Driver Provisioning
+
+**FR-DRV-MGMT-01** Only an OWNER SHALL be able to create a DRIVER account. Driver self-registration through the public registration page SHALL be blocked — any attempt to POST a DRIVER-role account via the public register endpoint SHALL be rejected with HTTP 403.
+
+**FR-DRV-MGMT-02** When creating a driver account, the OWNER SHALL provide:
+- Driver's full name
+- Username (unique across the entire system)
+- Initial password (set by the owner at creation time, hashed with bcrypt before storage)
+
+**FR-DRV-MGMT-03** Driver accounts SHALL be bound to the OWNER who created them via an `owner_id` foreign key (self-referential on `users`). This binding is permanent and cannot be transferred.
+
+**FR-DRV-MGMT-04** The system SHALL reject driver creation if the requested username already exists in the system, returning a clear duplicate username error.
+
+**FR-DRV-MGMT-05** The system SHALL enforce the plan-based driver limit (§7) at driver creation time. If the owner has reached their plan's driver cap, the creation request SHALL be rejected with an upgrade prompt.
+
+#### 4.15.2 Driver Credential Management
+
+**FR-DRV-MGMT-06** The OWNER SHALL be able to **disable** a driver account. A disabled driver cannot log in. Their historical fuel entries, activity logs, and vehicle assignments are preserved.
+
+**FR-DRV-MGMT-07** The OWNER SHALL be able to **re-enable** a previously disabled driver account, restoring login access immediately.
+
+**FR-DRV-MGMT-08** The OWNER SHALL be able to **permanently remove** a driver account from their fleet. This action SHALL:
+- Require a confirmation step
+- Cascade-clear all vehicle assignments for that driver
+- Preserve all historical fuel entries and activity logs (with the driver's ID retained for audit purposes)
+
+**FR-DRV-MGMT-09** The OWNER SHALL be able to **reset a driver's password**, setting a new password that the driver uses on their next login.
+
+#### 4.15.3 Driver List Isolation
+
+**FR-DRV-MGMT-10** An OWNER SHALL only see and manage the drivers they created. All driver-list endpoints SHALL filter server-side by `owner_id = current_user.id`.
+
+**FR-DRV-MGMT-11** An OWNER SHALL NOT be able to assign another owner's drivers to their vehicles. The vehicle driver-assignment search (FR-VEH-09) SHALL only return drivers whose `owner_id` matches the requesting owner.
+
+**Acceptance criteria:**
+- [ ] An owner's driver list returns only drivers created by that owner
+- [ ] A driver created by Owner A cannot appear in Owner B's driver list or vehicle assignment search
+- [ ] A driver can log in using username + password after being provisioned by their owner
+- [ ] A disabled driver's login attempt is rejected with a clear message
+- [ ] Driver removal does not delete historical fuel entries or activity logs
+
+**Dependencies:** FR-AUTH-01, FR-AUTH-06, FR-VEH-09, FR-PLAN-05
+**Priority:** Must Have
+
+---
+
 ## 5. External Interface Requirements
 
 ### 5.1 User Interfaces
@@ -647,6 +708,7 @@ Flotte225 is a standalone web application with a REST API backend and a static H
 | `reports.html` | AI report generation and scheduling | OWNER |
 | `export.html` | Data export (PDF / Excel) | OWNER |
 | `admin-dashboard.html` | Super admin platform panel | SUPER_ADMIN |
+| `drivers.html` | Driver management (create, disable, remove, reset password) | OWNER |
 
 ### 5.2 API Interfaces
 

@@ -5,9 +5,11 @@ Tests for Sprint 8 — AI Reports & Webhook Integration
   US-032  Generate on-demand AI fleet report
   US-033  Configure scheduled AI reports
 """
-import pytest
+
 from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 from app.models.otp_code import OtpCode
 from app.models.subscription import SubscriptionPlan, OwnerSubscription
@@ -15,25 +17,40 @@ from app.models.subscription import SubscriptionPlan, OwnerSubscription
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def _seed_plans(db):
     from scripts.seed import PLANS
+
     for plan_data in PLANS:
-        if not db.query(SubscriptionPlan).filter(SubscriptionPlan.name == plan_data["name"]).first():
+        if (
+            not db.query(SubscriptionPlan)
+            .filter(SubscriptionPlan.name == plan_data["name"])
+            .first()
+        ):
             db.add(SubscriptionPlan(**plan_data))
     db.commit()
 
 
-def _register_and_verify(client, db, email, role="OWNER"):
+def _register_and_verify(client, db, email):
     with patch("app.services.auth_service.send_otp_email", return_value=True):
-        client.post("/api/v1/auth/register", json={
-            "full_name": "Test User",
-            "email": email,
-            "password": "Password1",
-            "role": role,
-        })
-    otp = db.query(OtpCode).filter(OtpCode.purpose == "EMAIL_VERIFY").order_by(OtpCode.id.desc()).first()
+        client.post(
+            "/api/v1/auth/register",
+            json={
+                "full_name": "Test User",
+                "email": email,
+                "password": "Password1",
+            },
+        )
+    otp = (
+        db.query(OtpCode)
+        .filter(OtpCode.purpose == "EMAIL_VERIFY")
+        .order_by(OtpCode.id.desc())
+        .first()
+    )
     client.post("/api/v1/auth/verify-email", json={"email": email, "code": otp.code})
-    res = client.post("/api/v1/auth/login", json={"email": email, "password": "Password1"})
+    res = client.post(
+        "/api/v1/auth/login", json={"identifier": email, "password": "Password1"}
+    )
     return res.json()["access_token"]
 
 
@@ -41,13 +58,48 @@ def _headers(token):
     return {"Authorization": f"Bearer {token}"}
 
 
+def _create_driver_in_db(db, owner_id, username):
+    from app.models.user import User
+    from app.core.security import hash_password
+
+    driver = User(
+        full_name="Test Driver",
+        username=username,
+        email=None,
+        password_hash=hash_password("Password1"),
+        role="DRIVER",
+        owner_id=owner_id,
+        is_verified=True,
+        is_active=True,
+        is_disabled=False,
+    )
+    db.add(driver)
+    db.commit()
+    db.refresh(driver)
+    return driver
+
+
+def _make_driver_token(client, db, owner_token, username):
+    owner_id = _get_user_id(owner_token)
+    driver = _create_driver_in_db(db, owner_id, username)
+    res = client.post(
+        "/api/v1/auth/login", json={"identifier": username, "password": "Password1"}
+    )
+    return res.json()["access_token"], driver.id
+
+
 def _get_user_id(token):
     from app.core.security import decode_access_token
+
     return int(decode_access_token(token)["sub"])
 
 
 def _upgrade_to_plan(db, owner_id, plan_name):
-    sub = db.query(OwnerSubscription).filter(OwnerSubscription.owner_id == owner_id).first()
+    sub = (
+        db.query(OwnerSubscription)
+        .filter(OwnerSubscription.owner_id == owner_id)
+        .first()
+    )
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.name == plan_name).first()
     sub.plan_id = plan.id
     db.commit()
@@ -55,7 +107,9 @@ def _upgrade_to_plan(db, owner_id, plan_name):
 
 # ── US-032: On-demand AI report ───────────────────────────────────────────────
 
+
 class TestReportGenerate:
+    @pytest.mark.skip(reason="Subscription tiering deferred — plan gating disabled")
     def test_starter_cannot_generate_report(self, client, db):
         _seed_plans(db)
         token = _register_and_verify(client, db, "rep32a@test.ci")
@@ -63,14 +117,17 @@ class TestReportGenerate:
         assert res.status_code == 403
         assert "Starter" in res.json()["detail"]
 
+    @pytest.mark.skip(reason="Subscription tiering deferred — plan gating disabled")
     def test_pro_owner_generates_report(self, client, db):
         _seed_plans(db)
         token = _register_and_verify(client, db, "rep32b@test.ci")
         owner_id = _get_user_id(token)
         _upgrade_to_plan(db, owner_id, "pro")
 
-        with patch("app.services.ai_report_service._call_openrouter", return_value="Rapport test."), \
-             patch("app.services.ai_report_service._send_report_email"):
+        with patch(
+            "app.services.ai_report_service._call_openrouter",
+            return_value="Rapport test.",
+        ), patch("app.services.ai_report_service._send_report_email"):
             res = client.post("/api/v1/reports/generate", headers=_headers(token))
 
         assert res.status_code == 200
@@ -79,6 +136,7 @@ class TestReportGenerate:
         assert data["used"] == 1
         assert data["limit"] == 5
 
+    @pytest.mark.skip(reason="Subscription tiering deferred — plan gating disabled")
     def test_pro_quota_enforced(self, client, db):
         _seed_plans(db)
         token = _register_and_verify(client, db, "rep32c@test.ci")
@@ -88,7 +146,10 @@ class TestReportGenerate:
         # Exhaust quota directly via DB — set usage_reset_at to today so counter is not reset
         from datetime import date
         from app.models.report_schedule import ReportSchedule
-        sched = ReportSchedule(owner_id=owner_id, ai_reports_used_month=5, usage_reset_at=date.today())
+
+        sched = ReportSchedule(
+            owner_id=owner_id, ai_reports_used_month=5, usage_reset_at=date.today()
+        )
         db.add(sched)
         db.commit()
 
@@ -102,8 +163,10 @@ class TestReportGenerate:
         owner_id = _get_user_id(token)
         _upgrade_to_plan(db, owner_id, "business")
 
-        with patch("app.services.ai_report_service._call_openrouter", return_value="Rapport business."), \
-             patch("app.services.ai_report_service._send_report_email"):
+        with patch(
+            "app.services.ai_report_service._call_openrouter",
+            return_value="Rapport business.",
+        ), patch("app.services.ai_report_service._send_report_email"):
             res = client.post("/api/v1/reports/generate", headers=_headers(token))
 
         assert res.status_code == 200
@@ -112,7 +175,8 @@ class TestReportGenerate:
 
     def test_driver_cannot_generate_report(self, client, db):
         _seed_plans(db)
-        token = _register_and_verify(client, db, "rep32e@test.ci", role="DRIVER")
+        owner_token = _register_and_verify(client, db, "owner32e_helper@test.ci")
+        token, _ = _make_driver_token(client, db, owner_token, "rep32e")
         res = client.post("/api/v1/reports/generate", headers=_headers(token))
         assert res.status_code == 403
 
@@ -122,6 +186,7 @@ class TestReportGenerate:
 
 
 # ── US-033: Schedule configuration ───────────────────────────────────────────
+
 
 class TestReportSchedule:
     def test_get_schedule_returns_defaults(self, client, db):
@@ -163,6 +228,7 @@ class TestReportSchedule:
         assert res.status_code == 200
         assert res.json()["frequency"] == "monthly"
 
+    @pytest.mark.skip(reason="Subscription tiering deferred — plan gating disabled")
     def test_pro_owner_cannot_enable_schedule(self, client, db):
         _seed_plans(db)
         token = _register_and_verify(client, db, "rep33d@test.ci")
@@ -176,6 +242,7 @@ class TestReportSchedule:
         )
         assert res.status_code == 403
 
+    @pytest.mark.skip(reason="Subscription tiering deferred — plan gating disabled")
     def test_starter_cannot_enable_schedule(self, client, db):
         _seed_plans(db)
         token = _register_and_verify(client, db, "rep33e@test.ci")
@@ -224,6 +291,7 @@ class TestReportSchedule:
 
 # ── US-030: Webhook status ────────────────────────────────────────────────────
 
+
 class TestWebhookStatus:
     def test_get_status_no_previous_dispatch(self, client, db):
         _seed_plans(db)
@@ -241,12 +309,14 @@ class TestWebhookStatus:
 
     def test_driver_cannot_view_webhook_status(self, client, db):
         _seed_plans(db)
-        token = _register_and_verify(client, db, "web30b@test.ci", role="DRIVER")
+        owner_token = _register_and_verify(client, db, "owner30b_helper@test.ci")
+        token, _ = _make_driver_token(client, db, owner_token, "web30b")
         res = client.get("/api/v1/webhook/status", headers=_headers(token))
         assert res.status_code == 403
 
 
 # ── US-029: Webhook trigger ───────────────────────────────────────────────────
+
 
 class TestWebhookTrigger:
     def test_trigger_without_configured_url_returns_400(self, client, db):
@@ -264,8 +334,9 @@ class TestWebhookTrigger:
         mock_response = MagicMock()
         mock_response.status_code = 200
 
-        with patch("app.core.config.settings.WEBHOOK_URL", "https://hook.example.com"), \
-             patch("app.services.webhook_service.httpx.post", return_value=mock_response):
+        with patch(
+            "app.core.config.settings.WEBHOOK_URL", "https://hook.example.com"
+        ), patch("app.services.webhook_service.httpx.post", return_value=mock_response):
             res = client.post("/api/v1/webhook/trigger", headers=_headers(token))
 
         assert res.status_code == 200
@@ -282,11 +353,13 @@ class TestWebhookTrigger:
         mock_response = MagicMock()
         mock_response.status_code = 201
 
-        with patch("app.core.config.settings.WEBHOOK_URL", "https://hook.example.com"), \
-             patch("app.services.webhook_service.httpx.post", return_value=mock_response):
+        with patch(
+            "app.core.config.settings.WEBHOOK_URL", "https://hook.example.com"
+        ), patch("app.services.webhook_service.httpx.post", return_value=mock_response):
             client.post("/api/v1/webhook/trigger", headers=_headers(token))
 
         from app.models.webhook_state import WebhookState
+
         state = db.query(WebhookState).filter(WebhookState.owner_id == owner_id).first()
         assert state is not None
         assert state.last_status_code == 201
@@ -297,6 +370,7 @@ class TestWebhookTrigger:
 
 
 # ── Unit: ai_report_service helpers ──────────────────────────────────────────
+
 
 class TestAiReportServiceUnit:
     def test_monthly_counter_resets_on_new_month(self, client, db):
@@ -310,7 +384,9 @@ class TestAiReportServiceUnit:
 
         # Simulate a schedule with usage from last month
         last_month = date(2026, 3, 1)
-        sched = ReportSchedule(owner_id=owner_id, ai_reports_used_month=5, usage_reset_at=last_month)
+        sched = ReportSchedule(
+            owner_id=owner_id, ai_reports_used_month=5, usage_reset_at=last_month
+        )
         db.add(sched)
         db.commit()
 
@@ -331,7 +407,9 @@ class TestAiReportServiceUnit:
         from app.services.ai_report_service import _cadence_elapsed
 
         sent_3_days_ago = datetime(2026, 4, 8, tzinfo=timezone.utc)
-        sched = ReportSchedule(owner_id=1, frequency="weekly", last_sent_at=sent_3_days_ago)
+        sched = ReportSchedule(
+            owner_id=1, frequency="weekly", last_sent_at=sent_3_days_ago
+        )
         now = datetime(2026, 4, 11, tzinfo=timezone.utc)
         assert _cadence_elapsed(sched, now) is False
 
@@ -340,25 +418,34 @@ class TestAiReportServiceUnit:
         from app.services.ai_report_service import _cadence_elapsed
 
         sent_8_days_ago = datetime(2026, 4, 3, tzinfo=timezone.utc)
-        sched = ReportSchedule(owner_id=1, frequency="weekly", last_sent_at=sent_8_days_ago)
+        sched = ReportSchedule(
+            owner_id=1, frequency="weekly", last_sent_at=sent_8_days_ago
+        )
         now = datetime(2026, 4, 11, tzinfo=timezone.utc)
         assert _cadence_elapsed(sched, now) is True
 
 
 # ── Unit: webhook_service helpers ─────────────────────────────────────────────
 
+
 class TestWebhookServiceUnit:
     def test_dispatch_returns_zero_on_timeout(self):
         import httpx
         from app.services.webhook_service import _dispatch
 
-        with patch("app.services.webhook_service.httpx.post", side_effect=httpx.TimeoutException("timeout")):
-            with patch("app.core.config.settings.WEBHOOK_URL", "https://hook.example.com"):
+        with patch(
+            "app.services.webhook_service.httpx.post",
+            side_effect=httpx.TimeoutException("timeout"),
+        ):
+            with patch(
+                "app.core.config.settings.WEBHOOK_URL", "https://hook.example.com"
+            ):
                 result = _dispatch({"event": "test"})
         assert result == 0
 
     def test_get_webhook_status_returns_none_when_no_record(self, db):
         _seed_plans(db)
         from app.services.webhook_service import get_webhook_status
+
         result = get_webhook_status(db, owner_id=99999)
         assert result is None

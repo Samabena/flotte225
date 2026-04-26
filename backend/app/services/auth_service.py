@@ -20,7 +20,7 @@ def _create_otp(db: Session, user_id: int, purpose: str) -> str:
     db.query(OtpCode).filter(
         OtpCode.user_id == user_id,
         OtpCode.purpose == purpose,
-        OtpCode.used_at == None,
+        OtpCode.used_at.is_(None),
     ).delete()
 
     code = _generate_otp()
@@ -50,7 +50,15 @@ def _assign_starter_plan(db: Session, owner_id: int) -> None:
     db.commit()
 
 
-def register(db: Session, full_name: str, email: str, password: str, phone: str | None, role: str = "OWNER") -> User:
+def register(
+    db: Session,
+    full_name: str,
+    email: str,
+    password: str,
+    phone: str | None,
+    company_name: str | None = None,
+) -> User:
+    """Public self-registration — OWNER role only. DRIVER accounts are owner-provisioned."""
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -59,8 +67,9 @@ def register(db: Session, full_name: str, email: str, password: str, phone: str 
     user = User(
         email=email,
         password_hash=hash_password(password),
-        role=role,
+        role="OWNER",
         full_name=full_name,
+        company_name=company_name,
         phone=phone,
         is_verified=False,
         is_active=True,
@@ -69,11 +78,8 @@ def register(db: Session, full_name: str, email: str, password: str, phone: str 
     db.commit()
     db.refresh(user)
 
-    # US-043: auto-assign Starter plan for owners only
-    if role == "OWNER":
-        _assign_starter_plan(db, user.id)
+    _assign_starter_plan(db, user.id)
 
-    # Send email verification OTP
     code = _create_otp(db, user.id, "EMAIL_VERIFY")
     send_otp_email(email, code, "EMAIL_VERIFY")
 
@@ -83,7 +89,9 @@ def register(db: Session, full_name: str, email: str, password: str, phone: str 
 def verify_email(db: Session, email: str, code: str) -> None:
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Utilisateur introuvable"
+        )
 
     otp = (
         db.query(OtpCode)
@@ -91,25 +99,37 @@ def verify_email(db: Session, email: str, code: str) -> None:
             OtpCode.user_id == user.id,
             OtpCode.purpose == "EMAIL_VERIFY",
             OtpCode.code == code,
-            OtpCode.used_at == None,
+            OtpCode.used_at.is_(None),
             OtpCode.expires_at > datetime.now(timezone.utc),
         )
         .first()
     )
     if not otp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Code invalide ou expiré")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Code invalide ou expiré"
+        )
 
     otp.used_at = datetime.now(timezone.utc)
     user.is_verified = True
     db.commit()
 
 
-def login(db: Session, email: str, password: str) -> dict:
-    user = db.query(User).filter(User.email == email).first()
+def login(db: Session, identifier: str, password: str) -> dict:
+    """Dual-mode: email+password for OWNER/SUPER_ADMIN, username+password for DRIVER."""
+    identifier = identifier.strip()
+    # Drivers are displayed as @username in the UI — accept both forms
+    if identifier.startswith("@"):
+        identifier = identifier[1:]
+
+    if "@" in identifier:
+        user = db.query(User).filter(User.email == identifier).first()
+    else:
+        user = db.query(User).filter(User.username == identifier).first()
+
     if not user or not verify_password(password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Email ou mot de passe incorrect",
+            detail="Identifiant ou mot de passe incorrect",
         )
     if not user.is_verified:
         raise HTTPException(
@@ -117,9 +137,16 @@ def login(db: Session, email: str, password: str) -> dict:
             detail="Veuillez vérifier votre email avant de vous connecter",
         )
     if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Compte désactivé")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Compte désactivé"
+        )
+    if user.is_disabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Votre compte a été désactivé. Contactez votre responsable.",
+        )
 
-    token = create_access_token({"sub": str(user.id), "email": user.email, "role": user.role})
+    token = create_access_token({"sub": str(user.id), "role": user.role})
     return {"access_token": token, "token_type": "bearer", "role": user.role}
 
 
@@ -135,7 +162,9 @@ def forgot_password(db: Session, email: str) -> None:
 def reset_password(db: Session, email: str, code: str, new_password: str) -> None:
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Code invalide ou expiré")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Code invalide ou expiré"
+        )
 
     otp = (
         db.query(OtpCode)
@@ -143,13 +172,15 @@ def reset_password(db: Session, email: str, code: str, new_password: str) -> Non
             OtpCode.user_id == user.id,
             OtpCode.purpose == "PASSWORD_RESET",
             OtpCode.code == code,
-            OtpCode.used_at == None,
+            OtpCode.used_at.is_(None),
             OtpCode.expires_at > datetime.now(timezone.utc),
         )
         .first()
     )
     if not otp:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Code invalide ou expiré")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Code invalide ou expiré"
+        )
 
     otp.used_at = datetime.now(timezone.utc)
     user.password_hash = hash_password(new_password)

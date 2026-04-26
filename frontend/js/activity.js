@@ -11,12 +11,12 @@ let currentVehicleId = '';
 let currentTotal = 0;
 
 if (!token()) {
-  window.location.href = 'index.html';
+  window.location.href = '/';
 }
 
 document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.clear();
-  window.location.href = 'index.html';
+  window.location.href = '/';
 });
 
 // ── Populate filter dropdowns ─────────────────────────────────────────────────
@@ -24,6 +24,11 @@ async function loadFilters() {
   try {
     // Load vehicles
     const vRes = await fetch(`${API}/vehicles`, { headers: authHeader() });
+    if (vRes.status === 401 || vRes.status === 403) {
+      localStorage.clear();
+      window.location.href = '/';
+      return;
+    }
     const vData = await vRes.json();
     const vehicleSelect = document.getElementById('filter-vehicle');
     (vData.data || []).forEach(v => {
@@ -35,6 +40,11 @@ async function loadFilters() {
 
     // Load drivers from dashboard
     const dRes = await fetch(`${API}/dashboard/owner`, { headers: authHeader() });
+    if (dRes.status === 401 || dRes.status === 403) {
+      localStorage.clear();
+      window.location.href = '/';
+      return;
+    }
     const dData = await dRes.json();
     const driverSelect = document.getElementById('filter-driver');
     (dData.data?.drivers || []).forEach(d => {
@@ -56,6 +66,11 @@ async function loadLogs(offset = 0) {
 
   try {
     const res = await fetch(`${API}/owner/activity-logs?${params}`, { headers: authHeader() });
+    if (res.status === 401 || res.status === 403) {
+      localStorage.clear();
+      window.location.href = '/';
+      return;
+    }
     const json = await res.json();
     const logs = json.data || [];
     renderTable(logs);
