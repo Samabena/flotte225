@@ -1,5 +1,5 @@
 # Flotte225 — Product Backlog
-*Generated from docs/FULL-SRS.md | 2026-04-06*
+*Generated from docs/FULL-SRS.md | Updated 2026-04-19*
 
 ---
 
@@ -614,7 +614,52 @@ Translated from SRS Functional Requirements.
 
 ---
 
-*46 stories from 14 modules | 2026-04-06 | Source: Generated from FULL-SRS.md*
+---
+
+## [FR-DRV-MGMT] — Owner-Managed Driver Access Control
+
+### US-047 — Owner Creates Driver Account with Username/Password
+**Priority:** Must Have
+**Story:**
+> As a fleet owner, I want to create a driver account by entering the driver's full name, username, and initial password, so that only my vetted drivers can access the system — without needing an email address.
+
+**Acceptance Criteria:**
+- [ ] Given I am on the driver management page, when I submit a valid form (full name, username, initial password), then a DRIVER account is created bound to my owner account and the driver can immediately log in with those credentials.
+- [ ] Given I submit a username that already exists in the system, when I click Create, then I see a clear duplicate username error and no account is created.
+- [ ] Given I have reached my plan's driver limit (e.g., 3 on Starter), when I try to create a new driver, then the request is rejected with an upgrade prompt.
+- [ ] Given I complete driver creation, when the account is created, then the password is stored hashed (bcrypt) and never in plaintext.
+- [ ] Given I am a driver trying to self-register on the public registration page, when I submit, then the DRIVER role option is absent and registration as a driver is blocked.
+
+---
+
+### US-048 — Owner Disables, Removes, or Resets Driver Credentials
+**Priority:** Must Have
+**Story:**
+> As a fleet owner, I want to disable a driver's login, permanently remove them from my fleet, or reset their password, so that I maintain full control over who can access the system and under what credentials.
+
+**Acceptance Criteria:**
+- [ ] Given an active driver in my fleet, when I click "Disable", then the driver's account is marked disabled and any subsequent login attempt by that driver is rejected with a clear message.
+- [ ] Given a disabled driver, when I click "Enable", then the driver's login access is restored immediately.
+- [ ] Given I click "Remove" on a driver, when I confirm the action, then the driver account is permanently deleted, all their vehicle assignments are cleared, and historical fuel entries and activity logs are preserved with the driver identifier retained.
+- [ ] Given I click "Reset Password" and enter a new password, when I save, then the driver's password is updated and they must use the new credentials on next login.
+- [ ] Given I cancel any of the above destructive actions, when the dialog closes, then no changes are applied.
+
+---
+
+### US-049 — Owner Views Only Their Own Isolated Driver List
+**Priority:** Must Have
+**Story:**
+> As a fleet owner, I want to see a list of only the drivers I have created, so that my driver roster is private and I cannot accidentally see or manage another owner's drivers.
+
+**Acceptance Criteria:**
+- [ ] Given I am logged in as an owner, when I navigate to the driver management page, then I see only the drivers created by my account (name, username, status).
+- [ ] Given another owner has also created drivers, when I view my driver list, then none of that owner's drivers appear.
+- [ ] Given I have no drivers yet, when I view the driver management page, then a clear empty state is shown with a "Create your first driver" prompt.
+- [ ] Given I search for drivers to assign to a vehicle, when I open the assignment search, then only my own drivers appear as candidates.
+
+---
+
+*49 stories from 15 modules | Updated 2026-04-19 | Source: Generated from FULL-SRS.md*
 
 ---
 
@@ -622,9 +667,9 @@ Translated from SRS Functional Requirements.
 
 - **Sprint Length:** 2 weeks
 - **Sprint Capacity:** 20 story points
-- **Total Estimated Stories:** 46
-- **Total Story Points:** 149
-- **Sprints to Full Product:** 8 sprints (16 weeks)
+- **Total Estimated Stories:** 49
+- **Total Story Points:** 159
+- **Sprints to Full Product:** 9 sprints (18 weeks)
 
 ---
 
@@ -746,6 +791,20 @@ Translated from SRS Functional Requirements.
 
 ---
 
+## 🏃 Sprint 9 — Driver Access Management
+*10 / 20 story points*
+*Goal: Drivers can no longer self-register. Owners provision driver accounts via username/password, manage credentials (disable / reset / remove), and each owner's driver list is fully isolated from other owners.*
+
+| ID | Story | Priority | Points |
+|----|-------|----------|--------|
+| US-047 | Owner creates driver account with username/password | Must Have | 5 |
+| US-048 | Owner disables / removes / resets driver credentials | Must Have | 3 |
+| US-049 | Owner views isolated driver list | Must Have | 2 |
+
+**Dependencies:** Sprints 1–2 (auth foundation + vehicle management)
+
+---
+
 ## 🔮 Future Backlog
 Items deferred — not in current scope.
 
@@ -758,4 +817,4 @@ Items deferred — not in current scope.
 
 ---
 
-*Generated: 2026-04-06 | Source SRS: docs/FULL-SRS.md | 8 sprints × 2 weeks = 16 weeks*
+*Updated: 2026-04-19 | Source SRS: docs/FULL-SRS.md | 9 sprints × 2 weeks = 18 weeks*

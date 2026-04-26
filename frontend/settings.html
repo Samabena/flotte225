@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Paramètres — Flotte225</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            green: { DEFAULT: '#005F02', light: '#e6f0e6' },
+            gold:  { DEFAULT: '#C0B87A', light: '#f7f4e8' },
+            cream: '#F2E3BB',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body        { background-color: #F2E3BB; font-family: 'Inter', system-ui, sans-serif; }
+    .sidebar    { background: #005F02; }
+    .card       { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .input-field { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; transition: box-shadow .15s; width: 100%; }
+    .input-field:focus { box-shadow: 0 0 0 2px rgba(0,95,2,.25); border-color: #005F02; }
+    .btn-primary   { background: #005F02; color: #fff; border-radius: 0.5rem; padding: 0.5rem 1.25rem; font-weight: 600; font-size: 0.875rem; transition: background .15s; cursor: pointer; }
+    .btn-primary:hover { background: #004a02; }
+    .section-title { font-size: 1rem; font-weight: 700; color: #005F02; margin-bottom: 0.25rem; }
+    .section-sub   { font-size: 0.8rem; color: #6B7280; margin-bottom: 1.25rem; }
+    .alert-ok  { background: #D1FAE5; color: #065F46; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+    .alert-err { background: #FEE2E2; color: #DC2626; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.8rem; }
+    /* Toggle switch */
+    .toggle               { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .toggle input         { opacity: 0; width: 0; height: 0; }
+    .slider               { position: absolute; cursor: pointer; inset: 0; background: #ccc; border-radius: 22px; transition: .3s; }
+    .slider:before        { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
+    input:checked + .slider              { background: #005F02; }
+    input:checked + .slider:before       { transform: translateX(18px); }
+      #sidebar { transition: width 0.25s ease; overflow: hidden; }
+    #sidebar.collapsed { width: 3.5rem; padding-left: 0.625rem; padding-right: 0.625rem; }
+    #sidebar.collapsed .sidebar-label { display: none; }
+    #sidebar.collapsed .sidebar-logo { justify-content: center; }
+    #sidebar.collapsed nav a, #sidebar.collapsed nav button,
+    #sidebar.collapsed .sidebar-action-btn { justify-content: center; }
+    #sidebar.collapsed .sidebar-bottom-btn { justify-content: center; }
+    #sidebar-toggle svg { transition: transform 0.25s ease; }
+    #sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
+  </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar w-56 h-screen flex flex-col p-5 text-white shrink-0">
+    <div class="sidebar-logo mb-8 flex items-center justify-between gap-2">
+      <span class="text-xl font-bold tracking-wide text-[#C0B87A] sidebar-label">Flotte225</span>
+      <button id="sidebar-toggle" class="text-white/60 hover:text-white p-1 rounded hover:bg-white/10 transition shrink-0" title="Réduire">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+    <nav class="flex flex-col gap-1 text-sm font-medium">
+      <a href="/dashboard-owner" class="px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Tableau de bord">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+        <span class="sidebar-label">Tableau de bord</span>
+      </a>
+      <a href="/vehicles" class="px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Véhicules">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
+        <span class="sidebar-label">Véhicules</span>
+      </a>
+      <a href="/maintenance" class="px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Maintenance">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z"/></svg>
+        <span class="sidebar-label">Maintenance</span>
+      </a>
+      <a href="/reports-template" class="px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Rapports">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+        <span class="sidebar-label">Rapports</span>
+      </a>
+    </nav>
+
+    <div class="mt-auto flex flex-col gap-1 text-sm">
+      <a href="/activity" class="sidebar-bottom-btn px-3 py-2 rounded-lg hover:bg-white/10 flex items-center gap-3" title="Journal d'activité">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <span class="sidebar-label">Journal d'activité</span>
+      </a>
+      <a href="/settings" class="sidebar-bottom-btn px-3 py-2 rounded-lg bg-white/10 flex items-center gap-3" title="Paramètres">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="sidebar-label">Paramètres</span>
+      </a>
+      <div class="mt-2 pt-2 border-t border-white/10">
+        <button id="btn-logout" class="sidebar-bottom-btn flex items-center gap-3 w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-sm" title="Déconnexion">
+          <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/></svg>
+          <span class="sidebar-label">Déconnexion</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 p-6 overflow-y-auto">
+    <h1 class="text-2xl font-bold text-[#005F02] mb-1">Paramètres</h1>
+    <p class="text-sm text-gray-500 mb-8">Gérez votre compte, vos alertes et les accès chauffeurs.</p>
+
+    <div class="max-w-2xl flex flex-col gap-6">
+
+      <!-- ── 1. Sécurité ───────────────────────────────────────────────────── -->
+      <div class="card p-6">
+        <p class="section-title">Sécurité</p>
+        <p class="section-sub">Modifiez votre mot de passe de connexion.</p>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Mot de passe actuel</label>
+            <input id="pw-current" type="password" class="input-field" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Nouveau mot de passe</label>
+            <input id="pw-new" type="password" class="input-field" placeholder="Min. 6 caractères" autocomplete="new-password" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Confirmer le nouveau mot de passe</label>
+            <input id="pw-confirm" type="password" class="input-field" placeholder="••••••••" autocomplete="new-password" />
+          </div>
+          <div id="pw-msg" class="hidden text-sm"></div>
+          <div>
+            <button onclick="changePassword()" class="btn-primary">Changer le mot de passe</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 2. Chauffeurs ─────────────────────────────────────────────────── -->
+      <div class="card p-6">
+        <p class="section-title">Chauffeurs</p>
+        <p class="section-sub">Ajoutez vos chauffeurs, créez leurs identifiants de connexion et assignez-leur un véhicule.</p>
+        <div class="flex items-center justify-between bg-[#e6f0e6] rounded-lg px-4 py-3">
+          <div>
+            <p class="text-sm font-semibold text-[#005F02]">Gestion des chauffeurs</p>
+            <p class="text-xs text-gray-600 mt-0.5">Créer un accès, réinitialiser un mot de passe, assigner un véhicule</p>
+          </div>
+          <a href="/drivers" class="btn-primary text-sm">Gérer</a>
+        </div>
+      </div>
+
+      <!-- ── 3. Alertes WhatsApp ────────────────────────────────────────────── -->
+      <div class="card p-6">
+        <p class="section-title">Alertes WhatsApp</p>
+        <p class="section-sub">Recevez les alertes critiques de votre flotte sur WhatsApp.</p>
+        <div class="flex flex-col gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1">Numéro WhatsApp</label>
+            <input id="wa-number" type="tel" class="input-field" placeholder="+225 07 00 00 00" />
+            <p class="text-xs text-gray-400 mt-1">Format international requis (ex : +225 01 23 45 67)</p>
+          </div>
+          <div id="wa-msg" class="hidden text-sm"></div>
+          <div>
+            <button onclick="saveWhatsApp()" class="btn-primary">Enregistrer</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 4. Alertes Email ───────────────────────────────────────────────── -->
+      <div class="card p-6">
+        <p class="section-title">Alertes Email</p>
+        <p class="section-sub">Activez ou désactivez les notifications par email pour votre flotte.</p>
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-800" id="email-display">—</p>
+            <p class="text-xs text-gray-500 mt-0.5">Adresse email de réception des alertes</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="email-toggle" onchange="saveEmailAlerts()" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div id="email-msg" class="hidden text-sm mt-3"></div>
+      </div>
+
+      <!-- ── 5. Personnalisation (À venir) ─────────────────────────────────── -->
+      <div class="card p-6 opacity-60">
+        <div class="flex items-start justify-between mb-1">
+          <p class="section-title" style="margin-bottom:0">Personnalisation</p>
+          <span class="text-xs bg-[#C0B87A]/20 text-[#7a6a00] font-semibold px-2 py-0.5 rounded-full">À venir</span>
+        </div>
+        <p class="section-sub">Couleur de thème, logo, nom de l'entreprise — personnalisez votre espace Flotte225.</p>
+        <div class="flex gap-3 pointer-events-none">
+          <div class="w-6 h-6 rounded-full bg-[#005F02] border-2 border-white shadow"></div>
+          <div class="w-6 h-6 rounded-full bg-[#C0B87A] border-2 border-white shadow"></div>
+          <div class="w-6 h-6 rounded-full bg-[#1D4ED8] border-2 border-white shadow"></div>
+          <div class="w-6 h-6 rounded-full bg-[#DC2626] border-2 border-white shadow opacity-40"></div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">Logo, couleur principale, nom affiché — fonctionnalité planifiée pour une prochaine version.</p>
+      </div>
+
+    </div>
+  </main>
+
+    <script>
+  (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});})();
+  </script>
+  <script src="js/settings.js"></script>
+</body>
+</html>

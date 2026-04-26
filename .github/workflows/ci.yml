@@ -1,0 +1,52 @@
+name: CI — Flotte225
+
+on:
+  push:
+    branches: ["feature/*", "fix/*", "staging"]
+  pull_request:
+    branches: ["staging", "main"]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flotte225_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+
+      - name: Lint with Ruff
+        run: ruff check backend/
+
+      - name: Check formatting with Black
+        run: black --check backend/
+
+      - name: Run tests with pytest
+        run: pytest backend/tests/ -v
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flotte225_test
+          SECRET_KEY: test-secret-key-for-ci-only-32chars!!
+          ENVIRONMENT: testing
+          SHOW_DOCS: "true"

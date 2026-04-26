@@ -609,4 +609,49 @@ Translated from SRS Functional Requirements.
 
 ---
 
-*46 stories from 14 modules | 2026-04-06 | Source: Generated from FULL-SRS.md*
+---
+
+## [FR-DRV-MGMT] — Owner-Managed Driver Access Control
+
+### US-047 — Owner Creates Driver Account with Username/Password
+**Priority:** Must Have
+**Story:**
+> As a fleet owner, I want to create a driver account by entering the driver's full name, username, and initial password, so that only my vetted drivers can access the system — without needing an email address.
+
+**Acceptance Criteria:**
+- [ ] Given I am on the driver management page, when I submit a valid form (full name, username, initial password), then a DRIVER account is created bound to my owner account and the driver can immediately log in with those credentials.
+- [ ] Given I submit a username that already exists in the system, when I click Create, then I see a clear duplicate username error and no account is created.
+- [ ] Given I have reached my plan's driver limit (e.g., 3 on Starter), when I try to create a new driver, then the request is rejected with an upgrade prompt.
+- [ ] Given I complete driver creation, when the account is created, then the password is stored hashed (bcrypt) and never in plaintext.
+- [ ] Given I am a driver trying to self-register on the public registration page, when I submit, then the DRIVER role option is absent and registration as a driver is blocked.
+
+---
+
+### US-048 — Owner Disables, Removes, or Resets Driver Credentials
+**Priority:** Must Have
+**Story:**
+> As a fleet owner, I want to disable a driver's login, permanently remove them from my fleet, or reset their password, so that I maintain full control over who can access the system and under what credentials.
+
+**Acceptance Criteria:**
+- [ ] Given an active driver in my fleet, when I click "Disable", then the driver's account is marked disabled and any subsequent login attempt by that driver is rejected with a clear message.
+- [ ] Given a disabled driver, when I click "Enable", then the driver's login access is restored immediately.
+- [ ] Given I click "Remove" on a driver, when I confirm the action, then the driver account is permanently deleted, all their vehicle assignments are cleared, and historical fuel entries and activity logs are preserved with the driver identifier retained.
+- [ ] Given I click "Reset Password" and enter a new password, when I save, then the driver's password is updated and they must use the new credentials on next login.
+- [ ] Given I cancel any of the above destructive actions, when the dialog closes, then no changes are applied.
+
+---
+
+### US-049 — Owner Views Only Their Own Isolated Driver List
+**Priority:** Must Have
+**Story:**
+> As a fleet owner, I want to see a list of only the drivers I have created, so that my driver roster is private and I cannot accidentally see or manage another owner's drivers.
+
+**Acceptance Criteria:**
+- [ ] Given I am logged in as an owner, when I navigate to the driver management page, then I see only the drivers created by my account (name, username, status).
+- [ ] Given another owner has also created drivers, when I view my driver list, then none of that owner's drivers appear.
+- [ ] Given I have no drivers yet, when I view the driver management page, then a clear empty state is shown with a "Create your first driver" prompt.
+- [ ] Given I search for drivers to assign to a vehicle, when I open the assignment search, then only my own drivers appear as candidates.
+
+---
+
+*49 stories from 15 modules | Updated 2026-04-19 | Source: Generated from FULL-SRS.md*

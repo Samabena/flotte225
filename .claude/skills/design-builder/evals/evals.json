@@ -1,0 +1,33 @@
+{
+  "skill_name": "design-builder",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "ok we've got the SRS and backlog done — let's work through the design. I want to figure out the database structure and API before we start coding",
+      "expected_output": "Skill reads FULL-SRS.md, presents known context summary, starts Section 1 (System Architecture), asks targeted questions only about deployment/containers/environments, saves 01-system-architecture.md, proceeds through all 7 sections sequentially, compiles FULL-DESIGN.md at the end",
+      "files": [
+        "docs/srs/FULL-SRS.md",
+        "docs/backlog/PRODUCT-BACKLOG.md"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/design",
+      "expected_output": "Skill detects fresh start (no design-progress.json), verifies PRODUCT-BACKLOG.md exists, creates docs/design/ directory, welcomes user, explains 7 sections, reads SRS to extract known context, begins Section 1 with targeted questions only",
+      "files": [
+        "docs/srs/FULL-SRS.md",
+        "docs/backlog/PRODUCT-BACKLOG.md"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to revise the API design section — we decided to add versioning and I also want to change the auth to use refresh tokens",
+      "expected_output": "Skill detects all 7 sections complete, enters revision mode, shows current Section 3 (API Design) in full, applies changes (versioning + refresh tokens), warns that Section 4 (UI screens) and Section 5 (integrations) may be affected by API changes, offers to update downstream, recompiles FULL-DESIGN.md",
+      "files": [
+        "docs/design/design-progress.json",
+        "docs/design/03-api-design.md",
+        "docs/design/FULL-DESIGN.md"
+      ]
+    }
+  ]
+}

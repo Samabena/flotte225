@@ -38,6 +38,7 @@
 | `activity.html` | Activity Log | OWNER | `/activity` |
 | `reports.html` | AI Reports | OWNER | `/reports` |
 | `export.html` | Data Export | OWNER | `/export` |
+| `settings.html` | Account & Notification Settings | OWNER | `/settings` |
 | `admin-dashboard.html` | Super Admin Panel | SUPER_ADMIN | `/admin` |
 
 ---
@@ -153,6 +154,103 @@ ADMIN FLOW
 
 ---
 
+### Settings / Paramètres (`settings.html`)
+
+**Role:** OWNER only. Any other authenticated role redirects to their own dashboard; unauthenticated users see a session-expired modal (no hard redirect to login).
+
+**Layout:** fixed sidebar (shared with all owner pages) + centered single-column content area, max-width 672px, one card per section.
+
+**Auth rule:** role is always read from the JWT payload — never from `localStorage` — so the page is immune to stale session state.
+
+---
+
+#### Section 1 — Sécurité
+> The owner changes their login password without leaving the app.
+
+- Fields: Mot de passe actuel | Nouveau mot de passe | Confirmer le nouveau mot de passe
+- Validation (client-side before API call): all fields required, new ≥ 6 chars, confirm must match
+- API: `PATCH /api/v1/auth/change-password`
+- On success: fields clear, green confirmation fades after 4 s
+- On error: red inline message (wrong current password, too short, etc.)
+
+---
+
+#### Section 2 — Chauffeurs
+> Quick gateway to driver provisioning — no duplicate UI.
+
+- Not a form — a highlight card with a "Gérer →" button that navigates to `drivers.html`
+- Sub-label: create access, reset password, assign vehicle
+- Future: inline mini-table showing active driver count + last login per driver
+
+---
+
+#### Section 3 — Alertes WhatsApp
+> The owner sets the phone number that receives critical fleet alerts via WhatsApp.
+
+- Field: numéro WhatsApp (tel input, international format hint: +225 …)
+- Pre-filled from `GET /api/v1/owner/settings` on page load
+- Saving an empty string clears the number (opt-out)
+- API: `PATCH /api/v1/owner/whatsapp`
+- Future: "Envoyer un message test" button to confirm the number is reachable
+
+---
+
+#### Section 4 — Alertes Email
+> The owner toggles whether fleet alert emails are sent to their registered address.
+
+- Display: owner's email address (read-only, from `GET /api/v1/owner/settings`)
+- Control: toggle switch (on / off)
+- API: `PATCH /api/v1/owner/email-alerts` → `{ "enabled": true | false }`
+- Toggle reverts on API error to prevent UI/DB desync
+- Future: separate "changer mon email" flow with OTP re-verification
+
+---
+
+#### Section 5 — Personnalisation *(planned)*
+> The owner brands their Flotte225 workspace: logo, accent colour, display name.
+
+- Logo upload (PNG/JPG, max 512 KB — shown in sidebar header)
+- Couleur principale (4–6 colour presets + hex input)
+- Nom affiché (overrides company name in sidebar and PDF exports)
+- Displayed as "À venir" greyed-out card until implemented
+- API (planned): `PATCH /api/v1/owner/branding`
+
+---
+
+#### Section 6 — Abonnement *(planned)*
+> The owner views their active plan, usage quota, and can initiate an upgrade.
+
+- Compact plan card: plan name + expiry date + usage bar (vehicles used / limit)
+- "Changer de plan" button → opens upgrade modal
+- API: `GET /api/v1/subscription/my-plan` (already exists)
+
+---
+
+#### Section 7 — Zone dangereuse *(planned)*
+> The owner permanently closes their account and erases all associated data.
+
+- Requires typed confirmation ("Tapez DELETE pour confirmer") + OTP sent to email
+- Backend: cascading delete of vehicles, entries, drivers, subscription
+
+---
+
+#### Data loading
+Single call to `GET /api/v1/owner/settings` on page load pre-fills WhatsApp number, email display, and email alerts toggle. Each section saves independently — no global save button.
+
+---
+
+#### Auth & error states
+
+| State | Behaviour |
+|---|---|
+| No token / expired token | Session-expired modal overlay — page stays visible but locked |
+| Role = DRIVER | Redirect to `dashboard-driver.html` |
+| Role = SUPER_ADMIN | Redirect to `dashboard-admin.html` |
+| API 401 on any action | Session-expired modal shown inline |
+| API 4xx/5xx on action | Red inline message, UI state reverts if needed |
+
+---
+
 ## Navigation Structure
 
 **Owner sidebar:**
@@ -162,7 +260,8 @@ ADMIN FLOW
 - Journal d'activité
 - Rapports IA *(Pro+)*
 - Export *(Pro+)*
-- Mon compte / Déconnexion
+- Paramètres
+- Déconnexion
 
 **Driver (top bar — mobile):**
 - Mon tableau de bord
