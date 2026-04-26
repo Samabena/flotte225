@@ -33,9 +33,28 @@
     #sidebar.collapsed .sidebar-bottom-btn { justify-content: center; }
     #sidebar-toggle svg { transition: transform 0.25s ease; }
     #sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
+    /* Mobile sidebar */
+    #sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 30; }
+    #sidebar-backdrop.show { display: block; }
+    #mobile-topbar { display: none; }
+    @media (max-width: 639px) {
+      #sidebar { position: fixed !important; top: 0; left: 0; z-index: 40; height: 100% !important; width: 14rem !important; transform: translateX(-100%) !important; transition: transform 0.25s ease !important; }
+      #sidebar.mobile-open { transform: translateX(0) !important; }
+      #mobile-topbar { display: flex !important; }
+      main { padding-top: 3.5rem; }
+    }
   </style>
 </head>
 <body class="h-screen flex overflow-hidden">
+
+  <!-- Mobile topbar -->
+  <div id="mobile-topbar" class="fixed top-0 left-0 right-0 z-20 items-center gap-3 px-4 h-14 bg-[#005F02] text-white">
+    <button id="mobile-menu-btn" class="p-2 rounded hover:bg-white/10 transition" aria-label="Menu">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <span class="font-bold text-[#C0B87A] text-lg">Flotte225</span>
+  </div>
+  <div id="sidebar-backdrop"></div>
 
   <!-- Sidebar -->
   <aside id="sidebar" class="sidebar w-56 h-screen flex flex-col p-5 text-white shrink-0">
@@ -64,7 +83,7 @@
   </aside>
 
   <!-- Main -->
-  <main class="flex-1 p-6 overflow-y-auto">
+  <main class="flex-1 p-4 sm:p-6 overflow-y-auto">
 
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
@@ -113,6 +132,7 @@
     <div class="card p-5 mb-6">
       <p class="font-semibold text-gray-700 mb-3">Mes véhicules assignés</p>
       <div id="vehicles-loading" class="text-center text-gray-400 text-sm py-4">Chargement…</div>
+      <div class="overflow-x-auto">
       <table id="vehicles-table" class="hidden w-full text-sm">
         <thead>
           <tr class="text-left text-gray-500 border-b">
@@ -124,6 +144,7 @@
         </thead>
         <tbody id="vehicles-tbody"></tbody>
       </table>
+      </div>
       <p id="empty-vehicles" class="hidden text-center text-gray-400 text-sm py-4">Aucun véhicule assigné</p>
     </div>
 
@@ -134,6 +155,7 @@
         <a href="/fuel-entry" class="text-xs text-[#005F02] hover:underline font-medium">Voir tout →</a>
       </div>
       <div id="fuel-loading" class="text-center text-gray-400 text-sm py-4">Chargement…</div>
+      <div class="overflow-x-auto">
       <table id="fuel-table" class="hidden w-full text-sm">
         <thead>
           <tr class="text-left text-gray-500 border-b">
@@ -145,6 +167,7 @@
         </thead>
         <tbody id="fuel-tbody"></tbody>
       </table>
+      </div>
       <p id="empty-fuel" class="hidden text-center text-gray-400 text-sm py-4">Aucune saisie pour l'instant</p>
       <div class="mt-4 text-center">
         <a href="/fuel-entry"
@@ -157,7 +180,7 @@
   </main>
 
     <script>
-  (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});})();
+  (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle'),mb=document.getElementById('mobile-menu-btn'),bd=document.getElementById('sidebar-backdrop');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});if(mb&&bd){mb.addEventListener('click',function(){s.classList.add('mobile-open');bd.classList.add('show');});bd.addEventListener('click',function(){s.classList.remove('mobile-open');bd.classList.remove('show');});}})();
   </script>
   <script src="js/driver.js"></script>
 </body>
