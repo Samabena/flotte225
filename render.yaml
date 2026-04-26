@@ -7,7 +7,6 @@ services:
     dockerContext: ./backend
     plan: free
     healthCheckPath: /health
-    preDeployCommand: alembic upgrade head
     envVars:
       - key: DATABASE_URL
         sync: false  # paste your Neon connection string in the Render dashboard
