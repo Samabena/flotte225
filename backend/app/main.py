@@ -69,5 +69,7 @@ async def clean_url_rewrite(request: Request, call_next):
     return await call_next(request)
 
 
-# Serve the frontend — must be mounted last so API routes take priority
-app.mount("/", StaticFiles(directory="/frontend", html=True), name="frontend")
+# Serve the frontend in development only — in production the frontend is a
+# separate static site service (e.g. Render static site) so no mount needed.
+if settings.ENVIRONMENT == "development":
+    app.mount("/", StaticFiles(directory="/frontend", html=True), name="frontend")
