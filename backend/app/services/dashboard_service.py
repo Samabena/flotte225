@@ -129,18 +129,27 @@ def _get_consumption_indicators(
 
 
 def _get_driver_statuses(db: Session, owner_id: int) -> list[DriverStatus]:
-    driver_id_rows = (
-        db.query(VehicleDriver.driver_id)
+    # New system: drivers provisioned directly by this owner
+    direct_ids = {
+        r.id
+        for r in db.query(User.id)
+        .filter(User.owner_id == owner_id, User.role == "DRIVER")
+        .all()
+    }
+    # Legacy: drivers linked via vehicle assignment
+    legacy_ids = {
+        r.driver_id
+        for r in db.query(VehicleDriver.driver_id)
         .join(Vehicle, VehicleDriver.vehicle_id == Vehicle.id)
         .filter(Vehicle.owner_id == owner_id)
         .distinct()
         .all()
-    )
-    if not driver_id_rows:
+    }
+    all_ids = direct_ids | legacy_ids
+    if not all_ids:
         return []
 
-    driver_ids = [r.driver_id for r in driver_id_rows]
-    drivers = db.query(User).filter(User.id.in_(driver_ids)).all()
+    drivers = db.query(User).filter(User.id.in_(all_ids)).all()
 
     active_vehicle_ids = [d.active_vehicle_id for d in drivers if d.active_vehicle_id]
     vehicles_map: dict[int, str] = {}
