@@ -2,13 +2,28 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.user import User
+from app.models.vehicle import Vehicle
 from app.models.vehicle_driver import VehicleDriver
 from app.core.security import hash_password
 
 
 def _get_own_driver_or_404(db: Session, owner_id: int, driver_id: int) -> User:
     driver = db.get(User, driver_id)
-    if not driver or driver.role != "DRIVER" or driver.owner_id != owner_id:
+    if not driver or driver.role != "DRIVER":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Chauffeur introuvable"
+        )
+    # New system: driver was created by this owner
+    if driver.owner_id == owner_id:
+        return driver
+    # Legacy fallback: driver linked via vehicle assignment
+    assigned = (
+        db.query(VehicleDriver)
+        .join(Vehicle, VehicleDriver.vehicle_id == Vehicle.id)
+        .filter(VehicleDriver.driver_id == driver_id, Vehicle.owner_id == owner_id)
+        .first()
+    )
+    if not assigned:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Chauffeur introuvable"
         )

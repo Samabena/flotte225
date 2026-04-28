@@ -237,10 +237,18 @@ function closeRemoveModal() {
 }
 
 async function submitRemove() {
-  await apiFetch(`/drivers/${selectedDriverId}`, { method: 'DELETE' });
+  const res = await fetch(`${API}/drivers/${selectedDriverId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token()}` },
+  });
   closeRemoveModal();
-  showAlert('Chauffeur supprimé.');
-  await loadDrivers();
+  if (res.ok || res.status === 204) {
+    showAlert('Chauffeur supprimé.');
+    await loadDrivers();
+  } else {
+    const json = await res.json().catch(() => ({}));
+    showAlert(json.detail || 'Erreur lors de la suppression.', 'error');
+  }
 }
 
 // ── Assign vehicle ────────────────────────────────────────────────────────────
