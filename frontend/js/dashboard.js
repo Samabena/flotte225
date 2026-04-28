@@ -578,7 +578,6 @@ function openVehicleModal(vehicle = null) {
   document.getElementById('v-fuel').value    = vehicle?.fuel_type     || '';
   document.getElementById('v-mileage').value = vehicle?.initial_mileage ?? '';
   document.getElementById('v-year').value    = vehicle?.year          || '';
-  document.getElementById('v-vin').value     = vehicle?.vin           || '';
   document.getElementById('vehicle-form-error').classList.add('hidden');
   document.getElementById('modal-vehicle').classList.remove('hidden');
 }
@@ -605,7 +604,6 @@ document.getElementById('btn-save-vehicle').addEventListener('click', async () =
   const fuel_type     = document.getElementById('v-fuel').value;
   const mileageRaw    = document.getElementById('v-mileage').value;
   const yearRaw       = document.getElementById('v-year').value;
-  const vin           = document.getElementById('v-vin').value.trim();
 
   if (!name || !brand || !model || !license_plate || !fuel_type) {
     errEl.textContent = 'Veuillez remplir tous les champs obligatoires (*).';
@@ -621,7 +619,6 @@ document.getElementById('btn-save-vehicle').addEventListener('click', async () =
   const body = { name, brand, model, license_plate, fuel_type };
   if (mileageRaw !== '') body.initial_mileage = parseFloat(mileageRaw);
   if (yearRaw)           body.year = parseInt(yearRaw);
-  if (vin)               body.vin = vin;
 
   const isEdit = editingVehicleId !== null;
   const res = await apiFetch(
