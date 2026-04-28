@@ -12,11 +12,24 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 });
 
 // ── Restore persisted state ───────────────────────────────────────────────────
+// ── Greeting ──────────────────────────────────────────────────────────────────
+function greetingWord() {
+  const hour = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'Africa/Abidjan' })
+  ).getHours();
+  return hour >= 18 ? 'Bonsoir' : 'Bonjour';
+}
+
+function setGreeting(name) {
+  document.getElementById('greeting-word').textContent = greetingWord();
+  if (name) document.getElementById('driver-name').textContent = name;
+}
+
 const savedName   = localStorage.getItem('driver_full_name');
 const savedStatus = localStorage.getItem('driver_driving_status') === 'true';
 const savedVehicle = localStorage.getItem('driver_active_vehicle_name') || '—';
 
-if (savedName) document.getElementById('driver-name').textContent = savedName;
+setGreeting(savedName);
 applyStatus(savedStatus, savedVehicle);
 
 // ── Assigned vehicles ─────────────────────────────────────────────────────────
@@ -60,10 +73,9 @@ function populateSelect(vehicles) {
   const sel = document.getElementById('vehicle-select');
   if (!vehicles.length) {
     sel.innerHTML = '<option value="">Aucun véhicule assigné</option>';
-    document.getElementById('btn-activate').disabled = true;
     return;
   }
-  sel.innerHTML = vehicles.map(v =>
+  sel.innerHTML = '<option value="">— Sélectionner —</option>' + vehicles.map(v =>
     `<option value="${v.id}">${esc(v.name)} — ${esc(v.license_plate)}</option>`
   ).join('');
 }
@@ -92,21 +104,19 @@ function persistStatus(summary, vehicleName) {
   localStorage.setItem('driver_full_name', summary.full_name || '');
   localStorage.setItem('driver_driving_status', summary.driving_status ? 'true' : 'false');
   localStorage.setItem('driver_active_vehicle_name', vehicleName || '');
-  document.getElementById('driver-name').textContent = summary.full_name || 'Chauffeur';
+  setGreeting(summary.full_name || 'Chauffeur');
 }
 
-// ── Activate ──────────────────────────────────────────────────────────────────
-document.getElementById('btn-activate').addEventListener('click', async () => {
-  const errEl = document.getElementById('status-error');
+// ── Activate (auto on vehicle select) ────────────────────────────────────────
+document.getElementById('vehicle-select').addEventListener('change', async () => {
+  const errEl    = document.getElementById('status-error');
+  const sel      = document.getElementById('vehicle-select');
+  const vehicleId = sel.value;
   errEl.classList.add('hidden');
-  const vehicleId = document.getElementById('vehicle-select').value;
 
-  if (!vehicleId) {
-    errEl.textContent = 'Veuillez sélectionner un véhicule.';
-    errEl.classList.remove('hidden');
-    return;
-  }
+  if (!vehicleId) return;
 
+  sel.disabled = true;
   const selectedVehicle = assignedVehicles.find(v => v.id == vehicleId);
   const vehicleName = selectedVehicle ? `${selectedVehicle.name} (${selectedVehicle.license_plate})` : '';
 
@@ -116,6 +126,7 @@ document.getElementById('btn-activate').addEventListener('click', async () => {
     body: JSON.stringify({ vehicle_id: parseInt(vehicleId) }),
   });
 
+  sel.disabled = false;
   const json = await res.json().catch(() => ({}));
   if (res.ok) {
     persistStatus(json.data || {}, vehicleName);

@@ -94,6 +94,10 @@
         <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
         <span class="sidebar-label">Rapports</span>
       </a>
+      <a href="/drivers" class="px-3 py-2 rounded-lg bg-white/10 flex items-center gap-3" title="Chauffeurs">
+        <svg class="shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="18" height="18"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+        <span class="sidebar-label">Chauffeurs</span>
+      </a>
     </nav>
 
     <div class="mt-auto flex flex-col gap-1 text-sm">
@@ -158,7 +162,12 @@
         </div>
         <div>
           <label class="block text-xs font-semibold text-gray-600 mb-1">Mot de passe initial</label>
-          <input id="c-password" type="password" class="input-field" placeholder="Min. 6 caractères" autocomplete="new-password" />
+          <div class="relative">
+            <input id="c-password" type="password" class="input-field pr-10" placeholder="Min. 6 caractères" autocomplete="new-password" />
+            <button type="button" onclick="togglePassword('c-password', this)" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600" tabindex="-1">
+              <svg class="eye-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            </button>
+          </div>
         </div>
         <div id="create-error" class="hidden text-red-600 text-xs bg-red-50 px-3 py-2 rounded"></div>
       </div>
@@ -176,7 +185,12 @@
       <p id="reset-driver-name" class="text-sm text-gray-500 mb-4"></p>
       <div>
         <label class="block text-xs font-semibold text-gray-600 mb-1">Nouveau mot de passe</label>
-        <input id="r-password" type="password" class="input-field" placeholder="Min. 6 caractères" autocomplete="new-password" />
+        <div class="relative">
+          <input id="r-password" type="password" class="input-field pr-10" placeholder="Min. 6 caractères" autocomplete="new-password" />
+          <button type="button" onclick="togglePassword('r-password', this)" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600" tabindex="-1">
+            <svg class="eye-icon w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </button>
+        </div>
       </div>
       <div id="reset-error" class="hidden text-red-600 text-xs bg-red-50 px-3 py-2 rounded mt-2"></div>
       <div class="flex gap-2 mt-5 justify-end">
@@ -219,6 +233,16 @@
 
     <script>
   (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle'),mb=document.getElementById('mobile-menu-btn'),bd=document.getElementById('sidebar-backdrop');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});if(mb&&bd){mb.addEventListener('click',function(){s.classList.add('mobile-open');bd.classList.add('show');});bd.addEventListener('click',function(){s.classList.remove('mobile-open');bd.classList.remove('show');});}})();
+
+  function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    const svg = btn.querySelector('svg');
+    svg.innerHTML = isHidden
+      ? '<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/>'
+      : '<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>';
+  }
   </script>
   <script src="js/drivers.js"></script>
 </body>
