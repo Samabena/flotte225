@@ -83,8 +83,7 @@ function renderKPIs(data) {
   const activeVehicles = data.consumption.filter(v => v.entry_count >= 0).length;
   document.getElementById('kpi-active-vehicles').textContent = activeVehicles;
 
-  const activeDrivers = data.drivers.filter(d => d.driving_status).length;
-  document.getElementById('kpi-active-drivers').textContent = activeDrivers;
+  document.getElementById('kpi-active-drivers').textContent = (data.drivers || []).length;
 }
 
 // ── Spend by vehicle — bar chart ─────────────────────────────────────────────
