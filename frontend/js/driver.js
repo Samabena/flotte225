@@ -80,21 +80,15 @@ function populateSelect(vehicles) {
   ).join('');
 }
 
-// ── Status UI ─────────────────────────────────────────────────────────────────
+// ── Status UI (badge and card hidden from UI — state managed internally) ──────
 function applyStatus(isDriving, vehicleName) {
-  const badge     = document.getElementById('status-badge');
-  const actBlock  = document.getElementById('activate-block');
+  const actBlock   = document.getElementById('activate-block');
   const deactBlock = document.getElementById('deactivate-block');
-
   if (isDriving) {
-    badge.className = 'badge-active text-sm px-3 py-1 rounded-full font-semibold';
-    badge.textContent = 'En conduite';
     actBlock.classList.add('hidden');
     deactBlock.classList.remove('hidden');
     document.getElementById('active-vehicle-name').textContent = vehicleName || '—';
   } else {
-    badge.className = 'badge-inactive text-sm px-3 py-1 rounded-full font-semibold';
-    badge.textContent = 'Inactif';
     actBlock.classList.remove('hidden');
     deactBlock.classList.add('hidden');
   }

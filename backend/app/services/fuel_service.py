@@ -86,20 +86,6 @@ def _get_owner_id_for_vehicle(db: Session, vehicle_id: int) -> int:
 
 
 def create_fuel_entry(db: Session, driver: User, data: FuelEntryCreate) -> FuelEntry:
-    # Driver must be active
-    if not driver.driving_status:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Activez votre statut de conduite avant de soumettre une entrée carburant",
-        )
-
-    # Driver must be active on this specific vehicle
-    if driver.active_vehicle_id != data.vehicle_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Vous n'êtes pas en train de conduire ce véhicule",
-        )
-
     # Driver must be assigned to this vehicle
     assignment = (
         db.query(VehicleDriver)
