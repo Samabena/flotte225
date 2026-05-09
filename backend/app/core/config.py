@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
+    @property
+    def frontend_url(self) -> str:
+        return self.cors_origins_list[0]
+
     class Config:
         env_file = ".env"
 

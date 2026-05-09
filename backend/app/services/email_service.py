@@ -1,3 +1,4 @@
+import html as html_lib
 import logging
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
@@ -182,7 +183,7 @@ _INSTANT_ALERT_CONTENT = """
 <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
   <tr>
     <td align="center">
-      <a href="https://flotte225.ci"
+      <a href="{dashboard_url}"
          style="display:inline-block;background-color:#1a3c5e;color:#ffffff;text-decoration:none;
                 padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;">
         Voir le tableau de bord
@@ -268,15 +269,17 @@ def build_instant_alert_email(
     alert_type_label = _ALERT_TYPE_LABELS.get(alert_type, alert_type)
 
     subject = f"Flotte225 — Alerte {severity_label} : {vehicle_name}"
+    dashboard_url = f"{settings.frontend_url}/dashboard-owner"
     content = _INSTANT_ALERT_CONTENT.format(
-        owner_name=owner_name,
-        vehicle_name=vehicle_name,
-        license_plate=license_plate,
+        owner_name=html_lib.escape(owner_name),
+        vehicle_name=html_lib.escape(vehicle_name),
+        license_plate=html_lib.escape(license_plate),
         alert_type_label=alert_type_label,
         severity_label=severity_label,
         severity_color=severity_color,
-        message=message,
-        detail=detail,
+        message=html_lib.escape(message),
+        detail=html_lib.escape(detail),
+        dashboard_url=dashboard_url,
     )
     html = _EMAIL_BASE.format(subject=subject, content=content, year=date.today().year)
     return subject, html
@@ -303,16 +306,16 @@ def build_daily_digest_email(
         row_bg = "#fef2f2" if a.severity == "critical" else "#fffbeb"
         rows_html += _DIGEST_ROW.format(
             row_bg=row_bg,
-            vehicle_name=a.vehicle_name,
-            license_plate=a.license_plate,
+            vehicle_name=html_lib.escape(a.vehicle_name),
+            license_plate=html_lib.escape(a.license_plate),
             alert_type_label=_ALERT_TYPE_LABELS.get(a.type, a.type),
             severity_color=severity_color,
             severity_label=severity_label,
-            message=a.message,
+            message=html_lib.escape(a.message),
         )
 
     content = _DIGEST_CONTENT.format(
-        owner_name=owner_name,
+        owner_name=html_lib.escape(owner_name),
         alert_date=alert_date,
         critical_count=critical_count,
         warning_count=warning_count,

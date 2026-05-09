@@ -99,7 +99,7 @@ function openAddModal() {
   editingId = null;
   document.getElementById('form-modal-title').textContent = 'Nouveau véhicule';
   document.getElementById('form-submit-btn').textContent = 'Créer';
-  ['v-name','v-plate','v-brand','v-model','v-year','v-vin'].forEach(id => document.getElementById(id).value = '');
+  ['v-name','v-plate','v-brand','v-model','v-year'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('v-mileage').value = '0';
   document.getElementById('v-fuel').value = 'Diesel';
   document.getElementById('form-error').classList.add('hidden');
@@ -119,7 +119,6 @@ function openEditModal(id) {
   document.getElementById('v-year').value = v.year || '';
   document.getElementById('v-fuel').value = v.fuel_type || 'Diesel';
   document.getElementById('v-mileage').value = v.initial_mileage || 0;
-  document.getElementById('v-vin').value = v.vin || '';
   document.getElementById('form-error').classList.add('hidden');
   document.getElementById('form-modal').classList.remove('hidden');
 }
@@ -139,7 +138,6 @@ async function submitForm() {
   const year = document.getElementById('v-year').value ? parseInt(document.getElementById('v-year').value) : null;
   const fuel_type = document.getElementById('v-fuel').value;
   const initial_mileage = parseInt(document.getElementById('v-mileage').value) || 0;
-  const vin = document.getElementById('v-vin').value.trim() || null;
 
   if (!name || !license_plate || !brand || !model) {
     errEl.textContent = 'Nom, plaque, marque et modèle sont obligatoires.';
@@ -151,12 +149,12 @@ async function submitForm() {
   if (editingId) {
     res = await apiFetch(`/vehicles/${editingId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ name, license_plate, brand, model, year, fuel_type, vin }),
+      body: JSON.stringify({ name, license_plate, brand, model, year, fuel_type }),
     });
   } else {
     res = await apiFetch('/vehicles', {
       method: 'POST',
-      body: JSON.stringify({ name, license_plate, brand, model, year, fuel_type, initial_mileage, vin }),
+      body: JSON.stringify({ name, license_plate, brand, model, year, fuel_type, initial_mileage }),
     });
   }
 
