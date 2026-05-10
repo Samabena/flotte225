@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Integer, ForeignKey, Date, Numeric, DateTime
+from sqlalchemy import Integer, ForeignKey, Date, Numeric, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
@@ -22,6 +22,14 @@ class FuelEntry(Base):
     consumption_per_100km: Mapped[float | None] = mapped_column(
         Numeric(6, 2), nullable=True
     )
+    # Route / GPS fields (optional — filled when driver uses map feature)
+    departure_place: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    departure_lat: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
+    departure_lng: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
+    destination_place: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    destination_lat: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
+    destination_lng: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
+    route_distance_km: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

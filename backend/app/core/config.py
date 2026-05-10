@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     WEBHOOK_URL: str = ""
     WEBHOOK_INTERVAL_HOURS: int = 24
 
+    # Google Maps
+    GOOGLE_MAPS_API_KEY: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]

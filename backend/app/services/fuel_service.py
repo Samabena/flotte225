@@ -122,6 +122,13 @@ def create_fuel_entry(db: Session, driver: User, data: FuelEntryCreate) -> FuelE
         amount_fcfa=data.amount_fcfa,
         distance_km=distance_km,
         consumption_per_100km=consumption,
+        departure_place=data.departure_place,
+        departure_lat=data.departure_lat,
+        departure_lng=data.departure_lng,
+        destination_place=data.destination_place,
+        destination_lat=data.destination_lat,
+        destination_lng=data.destination_lng,
+        route_distance_km=data.route_distance_km,
     )
     db.add(entry)
     db.flush()  # get entry.id before logging
