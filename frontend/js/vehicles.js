@@ -94,6 +94,20 @@ function renderList() {
   document.getElementById('plan-info').textContent = `${vehicles.length} véhicule(s) enregistré(s)`;
 }
 
+// ── Driver select (creation only) ─────────────────────────────────────────────
+async function loadDriversForSelect() {
+  const sel = document.getElementById('v-driver');
+  sel.innerHTML = '<option value="">— Aucun chauffeur —</option>';
+  const data = await apiFetch('/drivers');
+  if (!Array.isArray(data)) return;
+  data.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d.id;
+    opt.textContent = d.full_name;
+    sel.appendChild(opt);
+  });
+}
+
 // ── Add / Edit Modal ──────────────────────────────────────────────────────────
 function openAddModal() {
   editingId = null;
@@ -102,7 +116,9 @@ function openAddModal() {
   ['v-name','v-plate','v-brand','v-model','v-year'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('v-mileage').value = '0';
   document.getElementById('v-fuel').value = 'Diesel';
+  document.getElementById('v-driver-row').classList.remove('hidden');
   document.getElementById('form-error').classList.add('hidden');
+  loadDriversForSelect();
   document.getElementById('form-modal').classList.remove('hidden');
 }
 
@@ -119,6 +135,7 @@ function openEditModal(id) {
   document.getElementById('v-year').value = v.year || '';
   document.getElementById('v-fuel').value = v.fuel_type || 'Diesel';
   document.getElementById('v-mileage').value = v.initial_mileage || 0;
+  document.getElementById('v-driver-row').classList.add('hidden');
   document.getElementById('form-error').classList.add('hidden');
   document.getElementById('form-modal').classList.remove('hidden');
 }
@@ -152,9 +169,11 @@ async function submitForm() {
       body: JSON.stringify({ name, license_plate, brand, model, year, fuel_type }),
     });
   } else {
+    const driverIdRaw = document.getElementById('v-driver').value;
+    const driver_ids = driverIdRaw ? [parseInt(driverIdRaw)] : undefined;
     res = await apiFetch('/vehicles', {
       method: 'POST',
-      body: JSON.stringify({ name, license_plate, brand, model, year, fuel_type, initial_mileage }),
+      body: JSON.stringify({ name, license_plate, brand, model, year, fuel_type, initial_mileage, ...(driver_ids && { driver_ids }) }),
     });
   }
 

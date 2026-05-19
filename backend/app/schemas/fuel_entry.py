@@ -9,6 +9,13 @@ class FuelEntryCreate(BaseModel):
     odometer_km: int
     quantity_litres: Decimal
     amount_fcfa: Decimal
+    departure_place: str | None = None
+    departure_lat: Decimal | None = None
+    departure_lng: Decimal | None = None
+    destination_place: str | None = None
+    destination_lat: Decimal | None = None
+    destination_lng: Decimal | None = None
+    route_distance_km: Decimal | None = None
 
     @field_validator("odometer_km")
     @classmethod
@@ -56,6 +63,13 @@ class FuelEntryResponse(BaseModel):
     amount_fcfa: Decimal
     distance_km: int | None
     consumption_per_100km: Decimal | None
+    departure_place: str | None
+    departure_lat: Decimal | None
+    departure_lng: Decimal | None
+    destination_place: str | None
+    destination_lat: Decimal | None
+    destination_lng: Decimal | None
+    route_distance_km: Decimal | None
     created_at: dt.datetime
     updated_at: dt.datetime
 

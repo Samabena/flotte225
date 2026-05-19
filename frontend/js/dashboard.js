@@ -462,7 +462,7 @@ document.getElementById('btn-save-whatsapp').addEventListener('click', async () 
 });
 
 // ── Section navigation ────────────────────────────────────────────────────────
-const SECTIONS = ['dashboard', 'vehicles', 'drivers'];
+const SECTIONS = ['dashboard', 'vehicles', 'drivers', 'fuel'];
 
 function showSection(name) {
   SECTIONS.forEach(s => {
@@ -475,6 +475,7 @@ function showSection(name) {
   });
   if (name === 'vehicles') loadVehicles();
   if (name === 'drivers') loadDriverAssignments();
+  if (name === 'fuel') loadOwnerFuelEntries();
 }
 
 document.querySelectorAll('.nav-link').forEach(link => {
@@ -792,6 +793,71 @@ document.getElementById('confirm-ok').addEventListener('click', () => {
   if (confirmCallback) confirmCallback();
   confirmCallback = null;
 });
+
+// ── Owner fuel entries (Sprint 10 — route tracking) ───────────────────────────
+async function loadOwnerFuelEntries() {
+  const loading = document.getElementById('fuel-loading');
+  const table   = document.getElementById('fuel-table');
+  const empty   = document.getElementById('empty-fuel');
+  if (!loading) return;
+  loading.classList.remove('hidden');
+  table.classList.add('hidden');
+  empty.classList.add('hidden');
+
+  try {
+    const [entriesRes, driversRes] = await Promise.all([
+      fetch(`${API}/owner/fuel-entries`, { headers: authHeader() }),
+      fetch(`${API}/drivers`, { headers: authHeader() }),
+    ]);
+    if (!entriesRes.ok) { loading.classList.add('hidden'); return; }
+
+    const entries = (await entriesRes.json()).data || [];
+    const driverList = driversRes.ok ? ((await driversRes.json()).data || []) : [];
+    const driverMap = {};
+    driverList.forEach(d => { driverMap[d.id] = d.username || d.full_name || `#${d.id}`; });
+
+    loading.classList.add('hidden');
+    if (!entries.length) { empty.classList.remove('hidden'); return; }
+
+    table.classList.remove('hidden');
+    document.getElementById('fuel-tbody').innerHTML = entries.map(e => {
+      const conso = e.consumption_per_100km
+        ? parseFloat(e.consumption_per_100km).toFixed(2) + ' L'
+        : '<span class="text-gray-300">—</span>';
+
+      const hasRoute = e.departure_place && e.destination_place;
+      const trajet = hasRoute
+        ? `<span class="text-xs text-gray-700">${esc(e.departure_place)} → ${esc(e.destination_place)}</span>`
+        : '<span class="text-gray-300">—</span>';
+
+      let distanceCell = '<span class="text-gray-300">—</span>';
+      if (hasRoute && e.route_distance_km) {
+        const routeKm  = parseFloat(e.route_distance_km);
+        const odoKm    = e.distance_km ? parseInt(e.distance_km) : null;
+        const hasGap   = odoKm !== null && Math.abs(routeKm - odoKm) / Math.max(routeKm, 1) > 0.20;
+        distanceCell = `<span class="font-medium ${hasGap ? 'text-amber-600' : 'text-[#005F02]'}">
+          ${routeKm.toLocaleString('fr-FR')} km
+          ${hasGap ? '<span title="Écart > 20% entre la distance Google et le relevé kilométrique" class="ml-1 cursor-help">⚠️</span>' : ''}
+        </span>`;
+      }
+
+      return `<tr class="border-b last:border-0">
+        <td class="py-2 whitespace-nowrap">${new Date(e.date).toLocaleDateString('fr-FR')}</td>
+        <td class="py-2 text-gray-600">${esc(driverMap[e.driver_id] || `#${e.driver_id}`)}</td>
+        <td class="py-2 text-gray-600">${esc(allVehicles.find(v => v.id === e.vehicle_id)?.name || `#${e.vehicle_id}`)}</td>
+        <td class="py-2 text-right">${parseInt(e.odometer_km).toLocaleString('fr-FR')}</td>
+        <td class="py-2 text-right">${parseFloat(e.quantity_litres).toFixed(1)}</td>
+        <td class="py-2 text-right font-medium">${parseFloat(e.amount_fcfa).toLocaleString('fr-FR')}</td>
+        <td class="py-2 text-right">${conso}</td>
+        <td class="py-2 max-w-xs">${trajet}</td>
+        <td class="py-2 text-right whitespace-nowrap">${distanceCell}</td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    console.error('Erreur saisies carburant', err);
+    loading.classList.add('hidden');
+  }
+}
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadDashboard();
