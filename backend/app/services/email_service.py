@@ -1,33 +1,36 @@
 import html as html_lib
 import logging
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import smtplib
+import ssl
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 def send_email(to: str, subject: str, html_content: str) -> bool:
-    """Send an email via SendGrid. Returns True on success, False on failure (non-blocking)."""
-    if not settings.SENDGRID_API_KEY:
-        logger.warning("SENDGRID_API_KEY not set — email not sent to %s", to)
+    """Send an email via SMTP. Returns True on success, False on failure (non-blocking)."""
+    if not settings.SMTP_HOST or not settings.SMTP_USER:
+        logger.warning("SMTP not configured — email not sent to %s", to)
         return False
 
-    message = Mail(
-        from_email=settings.SENDGRID_FROM_EMAIL,
-        to_emails=to,
-        subject=subject,
-        html_content=html_content,
-    )
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = settings.SMTP_FROM
+    msg["To"] = to
+    msg.attach(MIMEText(html_content, "html"))
+
     try:
-        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
-        response = sg.send(message)
-        if response.status_code >= 400:
-            logger.error("SendGrid error %s for %s", response.status_code, to)
-            return False
+        context = ssl.create_default_context()
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_FROM, to, msg.as_string())
         return True
     except Exception as exc:
-        logger.error("SendGrid exception for %s: %s", to, exc)
+        logger.error("SMTP exception for %s: %s", to, exc)
         return False
 
 

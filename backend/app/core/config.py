@@ -14,9 +14,12 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: str = "http://localhost:8000"
 
-    # Email (SendGrid)
-    SENDGRID_API_KEY: str = ""
-    SENDGRID_FROM_EMAIL: str = "noreply@flotte225.ci"
+    # Email (SMTP)
+    SMTP_HOST: str = "smtp.hostinger.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
 
     # AI Reports (OpenRouter)
     OPENROUTER_API_KEY: str = ""

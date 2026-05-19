@@ -18,9 +18,15 @@ from app.core.security import hash_password
 from app.models.user import User
 from app.models.subscription import SubscriptionPlan
 
-SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL", "admin@flotte225.ci")
-SUPER_ADMIN_PASSWORD = os.getenv("SUPER_ADMIN_PASSWORD", "Admin@flotte225!")
+SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL")
+SUPER_ADMIN_PASSWORD = os.getenv("SUPER_ADMIN_PASSWORD")
 SUPER_ADMIN_NAME = os.getenv("SUPER_ADMIN_NAME", "Super Admin")
+
+_missing = [v for v, val in [("SUPER_ADMIN_EMAIL", SUPER_ADMIN_EMAIL), ("SUPER_ADMIN_PASSWORD", SUPER_ADMIN_PASSWORD)] if not val]
+if _missing:
+    print(f"ERROR: Missing required env vars: {', '.join(_missing)}")
+    print("Set them before running this script.")
+    sys.exit(1)
 
 PLANS = [
     {
