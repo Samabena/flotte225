@@ -1,0 +1,100 @@
+/* Flotte225 — shared app styles (design tokens + components).
+   Consolidates the per-page <style> blocks. Look preserved, lightly polished.
+   Brand: green #005F02 · gold #C0B87A · cream #F2E3BB */
+
+:root {
+  --f-green: #005F02;
+  --f-green-dark: #004a01;
+  --f-green-light: #e6f0e6;
+  --f-gold: #C0B87A;
+  --f-cream: #F2E3BB;
+  --f-radius: 0.75rem;
+  --f-card-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05);
+}
+
+body {
+  background-color: var(--f-cream);
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #1f2937;
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.04);
+  border-radius: var(--f-radius);
+  box-shadow: var(--f-card-shadow);
+}
+
+/* ── Inputs ────────────────────────────────────────────────────────────── */
+.input-field,
+.input {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: box-shadow .15s, border-color .15s;
+  width: 100%;
+}
+.input-field:focus,
+.input:focus {
+  box-shadow: 0 0 0 3px rgba(0,95,2,.18);
+  border-color: var(--f-green);
+}
+
+/* ── Buttons (shared component classes) ────────────────────────────────── */
+.btn-primary { background: var(--f-green); color: #fff; transition: background .15s, transform .1s; }
+.btn-primary:hover:not(:disabled) { background: var(--f-green-dark); }
+.btn-primary:active:not(:disabled) { transform: translateY(1px); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+.btn-ghost { color: var(--f-green); font-weight: 600; }
+.btn-ghost:hover { text-decoration: underline; }
+
+/* ── Badges ────────────────────────────────────────────────────────────── */
+.badge-critical { background:#FEE2E2; color:#DC2626; }
+.badge-warning  { background:#FEF3C7; color:#D97706; }
+.badge-ok       { background:#D1FAE5; color:#065F46; }
+.badge-active   { background:#D1FAE5; color:#065F46; }
+.badge-inactive { background:#F3F4F6; color:#6B7280; }
+
+/* ── Tabs (used on dashboard / vehicles) ───────────────────────────────── */
+.tab-btn,
+.vehicle-tab-btn { border-bottom: 2px solid transparent; transition: border-color .2s, color .2s; }
+.tab-btn.active,
+.vehicle-tab-btn.active { border-color: var(--f-green); color: var(--f-green); font-weight: 600; }
+
+/* ── Modal overlay ─────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Sidebar shell ─────────────────────────────────────────────────────── */
+.sidebar { background: var(--f-green); }
+#sidebar { transition: width 0.25s ease; overflow: hidden; }
+#sidebar.collapsed { width: 3.5rem; padding-left: 0.625rem; padding-right: 0.625rem; }
+#sidebar.collapsed .sidebar-label { display: none; }
+#sidebar.collapsed .sidebar-logo { justify-content: center; }
+#sidebar.collapsed nav a,
+#sidebar.collapsed nav button,
+#sidebar.collapsed .sidebar-action-btn { justify-content: center; }
+#sidebar.collapsed .sidebar-bottom-btn { justify-content: center; }
+#sidebar-toggle svg { transition: transform 0.25s ease; }
+#sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
+/* nav links: smoother hover + clearer active state */
+#sidebar nav a,
+#sidebar nav button { transition: background-color .15s; }
+
+/* ── Mobile sidebar ────────────────────────────────────────────────────── */
+#sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 30; }
+#sidebar-backdrop.show { display: block; }
+#mobile-topbar { display: none; }
+@media (max-width: 639px) {
+  #sidebar { position: fixed !important; top: 0; left: 0; z-index: 40; height: 100% !important;
+             width: 14rem !important; transform: translateX(-100%) !important;
+             transition: transform 0.25s ease !important; }
+  #sidebar.mobile-open { transform: translateX(0) !important; }
+  #mobile-topbar { display: flex !important; }
+  main { padding-top: 3.5rem; }
+}

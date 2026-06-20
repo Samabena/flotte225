@@ -5,48 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rapports IA — Flotte225</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            green: { DEFAULT: '#005F02', light: '#e6f0e6' },
-            gold: { DEFAULT: '#C0B87A', light: '#f7f4e8' },
-            cream: '#F2E3BB',
-          }
-        }
-      }
-    }
-  </script>
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/app.css" />
   <style>
-    body { background-color: #F2E3BB; font-family: 'Inter', system-ui, sans-serif; }
-    .sidebar { background: #005F02; }
-    .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .btn-primary { background: #005F02; color: #fff; }
+        .btn-primary { background: #005F02; color: #fff; }
     .btn-primary:hover:not(:disabled) { background: #004801; }
     .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
     .badge-sent    { background: #D1FAE5; color: #065F46; }
     .badge-failed  { background: #FEE2E2; color: #DC2626; }
     .badge-locked  { background: #F3F4F6; color: #9CA3AF; }
-      #sidebar { transition: width 0.25s ease; overflow: hidden; }
-    #sidebar.collapsed { width: 3.5rem; padding-left: 0.625rem; padding-right: 0.625rem; }
-    #sidebar.collapsed .sidebar-label { display: none; }
-    #sidebar.collapsed .sidebar-logo { justify-content: center; }
-    #sidebar.collapsed nav a, #sidebar.collapsed nav button,
-    #sidebar.collapsed .sidebar-action-btn { justify-content: center; }
-    #sidebar.collapsed .sidebar-bottom-btn { justify-content: center; }
-    #sidebar-toggle svg { transition: transform 0.25s ease; }
-    #sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
-    /* Mobile sidebar */
-    #sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 30; }
-    #sidebar-backdrop.show { display: block; }
-    #mobile-topbar { display: none; }
-    @media (max-width: 639px) {
-      #sidebar { position: fixed !important; top: 0; left: 0; z-index: 40; height: 100% !important; width: 14rem !important; transform: translateX(-100%) !important; transition: transform 0.25s ease !important; }
-      #sidebar.mobile-open { transform: translateX(0) !important; }
-      #mobile-topbar { display: flex !important; }
-      main { padding-top: 3.5rem; }
-    }
   </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -229,9 +196,7 @@
     </div>
   </main>
 
-    <script>
-  (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle'),mb=document.getElementById('mobile-menu-btn'),bd=document.getElementById('sidebar-backdrop');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});if(mb&&bd){mb.addEventListener('click',function(){s.classList.add('mobile-open');bd.classList.add('show');});bd.addEventListener('click',function(){s.classList.remove('mobile-open');bd.classList.remove('show');});}})();
-  </script>
+    <script src="/js/shell.js"></script>
   <script src="js/reports.js"></script>
 </body>
 </html>

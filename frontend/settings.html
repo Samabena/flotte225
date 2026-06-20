@@ -5,26 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Paramètres — Flotte225</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            green: { DEFAULT: '#005F02', light: '#e6f0e6' },
-            gold:  { DEFAULT: '#C0B87A', light: '#f7f4e8' },
-            cream: '#F2E3BB',
-          }
-        }
-      }
-    }
-  </script>
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/app.css" />
   <style>
-    body        { background-color: #F2E3BB; font-family: 'Inter', system-ui, sans-serif; }
-    .sidebar    { background: #005F02; }
-    .card       { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .input-field { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; transition: box-shadow .15s; width: 100%; }
-    .input-field:focus { box-shadow: 0 0 0 2px rgba(0,95,2,.25); border-color: #005F02; }
-    .btn-primary   { background: #005F02; color: #fff; border-radius: 0.5rem; padding: 0.5rem 1.25rem; font-weight: 600; font-size: 0.875rem; transition: background .15s; cursor: pointer; }
+        .btn-primary   { background: #005F02; color: #fff; border-radius: 0.5rem; padding: 0.5rem 1.25rem; font-weight: 600; font-size: 0.875rem; transition: background .15s; cursor: pointer; }
     .btn-primary:hover { background: #004a02; }
     .section-title { font-size: 1rem; font-weight: 700; color: #005F02; margin-bottom: 0.25rem; }
     .section-sub   { font-size: 0.8rem; color: #6B7280; margin-bottom: 1.25rem; }
@@ -37,25 +21,6 @@
     .slider:before        { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .3s; }
     input:checked + .slider              { background: #005F02; }
     input:checked + .slider:before       { transform: translateX(18px); }
-      #sidebar { transition: width 0.25s ease; overflow: hidden; }
-    #sidebar.collapsed { width: 3.5rem; padding-left: 0.625rem; padding-right: 0.625rem; }
-    #sidebar.collapsed .sidebar-label { display: none; }
-    #sidebar.collapsed .sidebar-logo { justify-content: center; }
-    #sidebar.collapsed nav a, #sidebar.collapsed nav button,
-    #sidebar.collapsed .sidebar-action-btn { justify-content: center; }
-    #sidebar.collapsed .sidebar-bottom-btn { justify-content: center; }
-    #sidebar-toggle svg { transition: transform 0.25s ease; }
-    #sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
-    /* Mobile sidebar */
-    #sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 30; }
-    #sidebar-backdrop.show { display: block; }
-    #mobile-topbar { display: none; }
-    @media (max-width: 639px) {
-      #sidebar { position: fixed !important; top: 0; left: 0; z-index: 40; height: 100% !important; width: 14rem !important; transform: translateX(-100%) !important; transition: transform 0.25s ease !important; }
-      #sidebar.mobile-open { transform: translateX(0) !important; }
-      #mobile-topbar { display: flex !important; }
-      main { padding-top: 3.5rem; }
-    }
   </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -202,9 +167,7 @@
     </div>
   </main>
 
-    <script>
-  (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle'),mb=document.getElementById('mobile-menu-btn'),bd=document.getElementById('sidebar-backdrop');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});if(mb&&bd){mb.addEventListener('click',function(){s.classList.add('mobile-open');bd.classList.add('show');});bd.addEventListener('click',function(){s.classList.remove('mobile-open');bd.classList.remove('show');});}})();
-  </script>
+    <script src="/js/shell.js"></script>
   <script src="js/settings.js"></script>
 </body>
 </html>
