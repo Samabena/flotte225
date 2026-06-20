@@ -84,7 +84,17 @@ def _assigned_or_403(db: Session, driver_id: int, vehicle_id: int) -> None:
 def _persist_expense(
     db: Session, vehicle_id: int, data: MaintenanceExpenseCreate
 ) -> MaintenanceExpense:
-    """Create the expense row + oil-change sync. Caller handles authorization."""
+    """Create the expense row + oil-change sync. Caller handles authorization.
+    Idempotent on client_uuid (re-sent offline entries don't duplicate)."""
+    if data.client_uuid:
+        existing = (
+            db.query(MaintenanceExpense)
+            .filter(MaintenanceExpense.client_uuid == data.client_uuid)
+            .first()
+        )
+        if existing:
+            return existing
+
     expense = MaintenanceExpense(
         vehicle_id=vehicle_id,
         date=data.date,
@@ -93,6 +103,7 @@ def _persist_expense(
         cost_fcfa=data.cost_fcfa,
         location=data.location,
         note=data.note,
+        client_uuid=data.client_uuid,
     )
     db.add(expense)
 
