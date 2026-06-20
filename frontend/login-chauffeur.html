@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>Flotte225 — Espace chauffeur</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            green: { DEFAULT: '#005F02', light: '#e6f0e6' },
+            gold: { DEFAULT: '#C0B87A' },
+            cream: '#F2E3BB',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #F2E3BB; font-family: 'Inter', system-ui, sans-serif; }
+    .card { background: #fff; border-radius: 1rem; box-shadow: 0 4px 24px rgba(0,0,0,.10); }
+    .btn-primary { background: #005F02; color: #fff; transition: background .15s; }
+    .btn-primary:hover:not(:disabled) { background: #004801; }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+    .input { border: 1px solid #d1d5db; border-radius: .5rem; padding: .625rem .875rem; width: 100%; outline: none; transition: border-color .15s; }
+    .input:focus { border-color: #005F02; box-shadow: 0 0 0 2px #e6f0e6; }
+    .error-box { background: #FEE2E2; border: 1px solid #FECACA; color: #DC2626; border-radius: .5rem; padding: .625rem .875rem; font-size: .875rem; }
+    .pw-wrap { position: relative; }
+    .pw-wrap .input { padding-right: 2.75rem; }
+    .eye-btn {
+      position: absolute; right: .75rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 0;
+      color: #9ca3af; line-height: 0;
+    }
+    .eye-btn:hover { color: #005F02; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-md">
+
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-[#005F02] tracking-wide">Flotte<span class="text-[#C0B87A]">225</span></h1>
+      <p class="text-gray-500 text-sm mt-1">Espace chauffeur</p>
+    </div>
+
+    <div class="card p-8">
+      <h2 class="text-xl font-semibold text-gray-800 mb-6">Connexion chauffeur</h2>
+
+      <form id="form-login-driver" class="space-y-4" novalidate>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur</label>
+          <input id="driver-username" type="text" class="input" placeholder="ex : kone_moussa" autocomplete="username" required />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+          <div class="pw-wrap">
+            <input id="driver-password" type="password" class="input" placeholder="••••••••" autocomplete="current-password" required />
+            <button type="button" class="eye-btn" onclick="togglePwd('driver-password', this)" aria-label="Afficher le mot de passe">
+              <svg id="driver-password-eye" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="driver-login-error" class="error-box hidden"></div>
+        <button type="submit" id="btn-login-driver" class="btn-primary w-full py-2.5 rounded-lg font-semibold text-sm">
+          Se connecter
+        </button>
+      </form>
+
+      <p class="mt-5 text-center text-xs text-gray-400">
+        Vos identifiants vous ont été remis par votre responsable de flotte.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api/v1';
+
+    // Redirect if already logged in with a non-expired token
+    function isTokenValid(token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return payload.exp * 1000 > Date.now();
+      } catch { return false; }
+    }
+    function getRoleFromToken(t) {
+      try { return JSON.parse(atob(t.split('.')[1])).role || null; } catch { return null; }
+    }
+
+    const _existingToken = localStorage.getItem('access_token');
+    if (_existingToken && isTokenValid(_existingToken)) {
+      const role = getRoleFromToken(_existingToken);
+      if (role === 'SUPER_ADMIN') location.href = '/dashboard-admin';
+      else if (role === 'DRIVER') location.href = '/dashboard-driver';
+      else location.href = '/dashboard-owner';
+    } else if (_existingToken) {
+      localStorage.clear();
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = loading;
+      btn.textContent = loading ? 'Chargement…' : btn.dataset.label;
+    }
+    document.querySelectorAll('button[type=submit]').forEach(btn => {
+      btn.dataset.label = btn.textContent.trim();
+    });
+
+    function showMsg(elId, text) {
+      const el = document.getElementById(elId);
+      el.textContent = text;
+      el.classList.remove('hidden');
+    }
+    function hideMsg(elId) {
+      document.getElementById(elId).classList.add('hidden');
+    }
+
+    // ── Password visibility toggle ────────────────────────────────────────────
+    const EYE_OPEN = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+    const EYE_SHUT = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+
+    function togglePwd(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.querySelector('svg').innerHTML = showing ? EYE_OPEN : EYE_SHUT;
+      btn.setAttribute('aria-label', showing ? 'Afficher le mot de passe' : 'Masquer le mot de passe');
+    }
+
+    // ── Driver login ──────────────────────────────────────────────────────────
+    async function doLogin(identifier, password, errorElId, btnId) {
+      hideMsg(errorElId);
+      setLoading(btnId, true);
+      try {
+        const res = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          const msg = Array.isArray(data.detail) ? data.detail[0]?.msg : (data.detail || 'Identifiants incorrects.');
+          showMsg(errorElId, msg);
+        } else if (data.role !== 'DRIVER') {
+          showMsg(errorElId, "Cet espace est réservé aux chauffeurs. Utilisez la page de connexion propriétaire.");
+        } else {
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('role', data.role);
+          location.href = '/dashboard-driver';
+        }
+      } catch {
+        showMsg(errorElId, 'Erreur réseau. Réessayez.');
+      }
+      setLoading(btnId, false);
+    }
+
+    document.getElementById('form-login-driver').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const identifier = document.getElementById('driver-username').value.trim();
+      const password   = document.getElementById('driver-password').value;
+      await doLogin(identifier, password, 'driver-login-error', 'btn-login-driver');
+    });
+  </script>
+</body>
+</html>
