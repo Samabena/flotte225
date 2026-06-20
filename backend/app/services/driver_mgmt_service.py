@@ -85,6 +85,16 @@ def set_driver_status(
     return driver
 
 
+def rename_driver(
+    db: Session, owner_id: int, driver_id: int, full_name: str
+) -> User:
+    driver = _get_own_driver_or_404(db, owner_id, driver_id)
+    driver.full_name = full_name
+    db.commit()
+    db.refresh(driver)
+    return driver
+
+
 def reset_driver_password(
     db: Session, owner_id: int, driver_id: int, new_password: str
 ) -> None:

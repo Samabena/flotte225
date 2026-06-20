@@ -58,3 +58,12 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: str
+
+
+class MeResponse(BaseModel):
+    id: int
+    full_name: str
+    role: str
+    email: str | None = None
+    username: str | None = None
+    company_name: str | None = None

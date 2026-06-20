@@ -97,8 +97,12 @@ function renderList() {
         <div class="flex items-center gap-3">
           ${statusBadge(d)}
           <div class="flex gap-2 flex-wrap justify-end">
+            <button onclick="shareDriverAccess('${esc(d.username)}')"
+              class="text-xs text-[#128C7E] hover:underline font-medium">Partager l'accès</button>
             <button onclick="openAssignModal(${d.id}, '${esc(d.full_name)}')"
               class="text-xs text-[#005F02] hover:underline font-medium">+ Véhicule</button>
+            <button onclick="openRenameModal(${d.id}, '${esc(d.full_name)}')"
+              class="text-xs text-gray-600 hover:underline font-medium">Renommer</button>
             <button onclick="openResetModal(${d.id}, '${esc(d.full_name)}')"
               class="text-xs text-blue-600 hover:underline font-medium">Mot de passe</button>
             ${d.is_disabled
@@ -183,6 +187,49 @@ async function toggleStatus(driverId, disable) {
     await loadDrivers();
   } else {
     showAlert(res.detail || 'Erreur.', 'error');
+  }
+}
+
+// ── Rename ────────────────────────────────────────────────────────────────────
+function openRenameModal(id, name) {
+  selectedDriverId = id;
+  document.getElementById('rename-current-name').textContent = `Chauffeur : ${name}`;
+  const input = document.getElementById('r-fullname');
+  input.value = name;
+  document.getElementById('rename-error').classList.add('hidden');
+  document.getElementById('rename-modal').classList.remove('hidden');
+  input.focus();
+  input.select();
+}
+
+function closeRenameModal() {
+  document.getElementById('rename-modal').classList.add('hidden');
+}
+
+async function submitRename() {
+  const full_name = document.getElementById('r-fullname').value.trim();
+  const errEl = document.getElementById('rename-error');
+  errEl.classList.add('hidden');
+
+  if (!full_name) {
+    errEl.textContent = 'Le nom complet est requis.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const res = await apiFetch(`/drivers/${selectedDriverId}/name`, {
+    method: 'PATCH',
+    body: JSON.stringify({ full_name }),
+  });
+
+  if (!res) return;
+  if (res.success !== false) {
+    closeRenameModal();
+    showAlert('Nom du chauffeur modifié.');
+    await loadDrivers();
+  } else {
+    errEl.textContent = res.detail || 'Erreur.';
+    errEl.classList.remove('hidden');
   }
 }
 
@@ -304,5 +351,50 @@ async function unassignVehicle(vehicleId, driverId, driverName) {
   await loadDrivers();
 }
 
+// ── Share driver login link ─────────────────────────────────────────────────
+const driverLoginUrl = () => `${window.location.origin}/login-chauffeur`;
+
+function whatsappMessage(username) {
+  const lines = [
+    'Bonjour 👋',
+    `Connectez-vous à votre espace chauffeur Flotte225 : ${driverLoginUrl()}`,
+  ];
+  if (username) lines.push(`Votre identifiant : ${username}`);
+  return lines.join('\n');
+}
+
+function openWhatsApp(message) {
+  window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+}
+
+async function copyDriverLink(btn) {
+  const url = driverLoginUrl();
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch {
+    // Fallback for browsers without clipboard API (or non-HTTPS contexts)
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  if (btn) {
+    const original = btn.textContent;
+    btn.textContent = '✓ Copié';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }
+}
+
+function shareDriverLinkWhatsApp() {
+  openWhatsApp(whatsappMessage());
+}
+
+function shareDriverAccess(username) {
+  openWhatsApp(whatsappMessage(username));
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById('driver-login-url').textContent = driverLoginUrl();
 loadDrivers();

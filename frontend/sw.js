@@ -5,7 +5,7 @@
      - same-origin GET   → cache-first, then network (and cache)
      - cross-origin GET  → network, best-effort opaque cache (e.g. Tailwind CDN)
 */
-const CACHE = 'flotte225-v1';
+const CACHE = 'flotte225-v3';
 const PRECACHE = [
   '/offline.html',
   '/manifest.webmanifest',
@@ -53,7 +53,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Same-origin static assets: cache-first.
+  // Same-origin code (JS/CSS): network-first so deploys take effect immediately,
+  // fall back to cache when offline. Cache-first here strands users on stale code.
+  if (url.origin === self.location.origin && /\.(?:js|css)$/.test(url.pathname)) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(request, copy));
+          return res;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Same-origin static media (icons, images, fonts): cache-first.
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.match(request).then(

@@ -12,6 +12,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     ResetPasswordRequest,
     TokenResponse,
+    MeResponse,
 )
 from app.services import auth_service
 
@@ -42,6 +43,19 @@ def verify_email(body: VerifyEmailRequest, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest, db: Session = Depends(get_db)):
     return auth_service.login(db, body.identifier, body.password)
+
+
+@router.get("/me", response_model=MeResponse)
+def me(current_user: User = Depends(get_current_user)):
+    """Return the authenticated user's identity (used to greet by name)."""
+    return MeResponse(
+        id=current_user.id,
+        full_name=current_user.full_name,
+        role=current_user.role,
+        email=current_user.email,
+        username=current_user.username,
+        company_name=current_user.company_name,
+    )
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
