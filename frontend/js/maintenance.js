@@ -42,6 +42,13 @@ function populateSelect(vehicles) {
   hint.classList.add('hidden');
   sel.innerHTML = '<option value="">— Choisir un véhicule —</option>' +
     vehicles.map(v => `<option value="${v.id}">${esc(v.name)} — ${esc(v.license_plate)}</option>`).join('');
+
+  // Convenience: if there's only one vehicle, select it so the maintenance
+  // panel (incl. the expenses form) shows up immediately without an extra click.
+  if (vehicles.length === 1) {
+    sel.value = String(vehicles[0].id);
+    sel.dispatchEvent(new Event('change'));
+  }
 }
 
 document.getElementById('vehicle-select').addEventListener('change', async (e) => {
