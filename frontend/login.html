@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Flotte225 — Connexion</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#005F02" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -47,7 +50,7 @@
 
     <!-- Logo -->
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-[#005F02] tracking-wide">Flotte<span class="text-[#C0B87A]">225</span></h1>
+      <a href="/" class="inline-block"><h1 class="text-3xl font-bold text-[#005F02] tracking-wide">Flotte<span class="text-[#C0B87A]">225</span></h1></a>
       <p class="text-gray-500 text-sm mt-1">Logiciel de gestion de flotte</p>
     </div>
 
@@ -413,5 +416,6 @@
       setLoading('btn-reset', false);
     });
   </script>
+  <script src="/js/offline.js"></script>
 </body>
 </html>

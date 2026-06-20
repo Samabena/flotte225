@@ -96,5 +96,6 @@ body {
              transition: transform 0.25s ease !important; }
   #sidebar.mobile-open { transform: translateX(0) !important; }
   #mobile-topbar { display: flex !important; }
-  main { padding-top: 3.5rem; }
+  /* Clear the 56px fixed topbar; !important to beat Tailwind's p-4 on <main>. */
+  main { padding-top: 4.5rem !important; }
 }
