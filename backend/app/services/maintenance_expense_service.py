@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 
 from app.models.maintenance import Maintenance
 from app.models.maintenance_expense import MaintenanceExpense
+from app.models.user import User
 from app.models.vehicle import Vehicle
+from app.models.vehicle_driver import VehicleDriver
 from app.schemas.maintenance_expense import (
     MaintenanceExpenseCreate,
     MaintenanceExpenseUpdate,
@@ -63,11 +65,26 @@ def _sync_oil_change(db: Session, vehicle_id: int, odometer_km: int | None) -> N
         record.last_oil_change_km = odometer_km
 
 
-def create_expense(
-    db: Session, owner_id: int, vehicle_id: int, data: MaintenanceExpenseCreate
-) -> MaintenanceExpense:
-    _get_vehicle_or_404(db, owner_id, vehicle_id)
+def _assigned_or_403(db: Session, driver_id: int, vehicle_id: int) -> None:
+    assignment = (
+        db.query(VehicleDriver)
+        .filter(
+            VehicleDriver.driver_id == driver_id,
+            VehicleDriver.vehicle_id == vehicle_id,
+        )
+        .first()
+    )
+    if not assignment:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Vous n'êtes pas assigné à ce véhicule",
+        )
 
+
+def _persist_expense(
+    db: Session, vehicle_id: int, data: MaintenanceExpenseCreate
+) -> MaintenanceExpense:
+    """Create the expense row + oil-change sync. Caller handles authorization."""
     expense = MaintenanceExpense(
         vehicle_id=vehicle_id,
         date=data.date,
@@ -85,6 +102,33 @@ def create_expense(
     db.commit()
     db.refresh(expense)
     return expense
+
+
+def create_expense(
+    db: Session, owner_id: int, vehicle_id: int, data: MaintenanceExpenseCreate
+) -> MaintenanceExpense:
+    _get_vehicle_or_404(db, owner_id, vehicle_id)
+    return _persist_expense(db, vehicle_id, data)
+
+
+def create_expense_as_driver(
+    db: Session, driver: User, vehicle_id: int, data: MaintenanceExpenseCreate
+) -> MaintenanceExpense:
+    """A driver logs an expense for a vehicle they are assigned to."""
+    _assigned_or_403(db, driver.id, vehicle_id)
+    return _persist_expense(db, vehicle_id, data)
+
+
+def list_vehicle_expenses_as_driver(
+    db: Session, driver: User, vehicle_id: int
+) -> list[MaintenanceExpense]:
+    _assigned_or_403(db, driver.id, vehicle_id)
+    return (
+        db.query(MaintenanceExpense)
+        .filter(MaintenanceExpense.vehicle_id == vehicle_id)
+        .order_by(MaintenanceExpense.date.desc(), MaintenanceExpense.id.desc())
+        .all()
+    )
 
 
 def list_vehicle_expenses(

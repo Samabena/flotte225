@@ -71,14 +71,17 @@ function renderVehicles(vehicles) {
 }
 
 function populateSelect(vehicles) {
+  const opts = vehicles.length
+    ? '<option value="">— Sélectionner —</option>' + vehicles.map(v =>
+        `<option value="${v.id}">${esc(v.name)} — ${esc(v.license_plate)}</option>`).join('')
+    : '<option value="">Aucun véhicule assigné</option>';
+
   const sel = document.getElementById('vehicle-select');
-  if (!vehicles.length) {
-    sel.innerHTML = '<option value="">Aucun véhicule assigné</option>';
-    return;
-  }
-  sel.innerHTML = '<option value="">— Sélectionner —</option>' + vehicles.map(v =>
-    `<option value="${v.id}">${esc(v.name)} — ${esc(v.license_plate)}</option>`
-  ).join('');
+  if (sel) sel.innerHTML = opts;
+
+  // Same vehicle list feeds the maintenance-expense form
+  const meSel = document.getElementById('me-vehicle');
+  if (meSel) meSel.innerHTML = opts;
 }
 
 // ── Status UI (badge and card hidden from UI — state managed internally) ──────
@@ -182,6 +185,60 @@ document.getElementById('btn-deactivate').addEventListener('click', async () => 
   } else {
     showStatusError(json.detail || 'Erreur lors de la remise du véhicule.');
   }
+});
+
+// ── Maintenance expense (logged by the driver, for an assigned vehicle) ───────
+(function initExpenseDate() {
+  const d = document.getElementById('me-date');
+  if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
+})();
+
+document.getElementById('btn-add-expense')?.addEventListener('click', async () => {
+  const errEl = document.getElementById('me-error');
+  const okEl  = document.getElementById('me-success');
+  errEl.classList.add('hidden');
+  okEl.classList.add('hidden');
+
+  const vehicleId = document.getElementById('me-vehicle').value;
+  const date      = document.getElementById('me-date').value;
+  const type      = document.getElementById('me-type').value;
+  const km        = document.getElementById('me-km').value;
+  const cost      = document.getElementById('me-cost').value;
+  const location  = document.getElementById('me-location').value.trim();
+
+  const fail = (m) => { errEl.textContent = m; errEl.classList.remove('hidden'); };
+  if (!vehicleId) return fail('Veuillez sélectionner un véhicule.');
+  if (!date)      return fail('Veuillez indiquer la date.');
+  if (cost === '' || parseFloat(cost) <= 0) return fail('Le coût doit être supérieur à 0.');
+
+  const body = { date, type, cost_fcfa: parseFloat(cost) };
+  if (km) body.odometer_km = parseInt(km);
+  if (location) body.location = location;
+
+  const btn = document.getElementById('btn-add-expense');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/driver/vehicles/${vehicleId}/maintenance-expenses`, {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (res.ok) {
+      okEl.textContent = 'Dépense enregistrée. Votre responsable la verra dans le tableau de bord.';
+      okEl.classList.remove('hidden');
+      document.getElementById('me-km').value = '';
+      document.getElementById('me-cost').value = '';
+      document.getElementById('me-location').value = '';
+      setTimeout(() => okEl.classList.add('hidden'), 5000);
+    } else {
+      const detail = json.detail;
+      fail(Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : (detail || "Erreur lors de l'enregistrement."));
+    }
+  } catch {
+    fail('Pas de réseau. Vérifiez votre connexion et réessayez.');
+  }
+  btn.disabled = false;
 });
 
 // ── Recent fuel entries (last 5 preview) ─────────────────────────────────────
