@@ -55,7 +55,63 @@ async function loadDashboard() {
   renderConsumption(data.consumption);
   renderDrivers(data.drivers);
   renderAlerts(data.alerts);
+  populateRevenueVehicles(data.consumption);
 }
+
+// ── Quick revenue entry (owner) ───────────────────────────────────────────────
+function populateRevenueVehicles(consumption) {
+  const sel = document.getElementById('rev-vehicle');
+  if (!sel) return;
+  const list = consumption || [];
+  sel.innerHTML = '<option value="">— Sélectionner —</option>' +
+    list.map(v => `<option value="${v.vehicle_id}">${v.vehicle_name}</option>`).join('');
+  const d = document.getElementById('rev-date');
+  if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
+}
+
+document.getElementById('btn-add-revenue')?.addEventListener('click', async () => {
+  const errEl = document.getElementById('rev-error');
+  const okEl  = document.getElementById('rev-success');
+  errEl.classList.add('hidden'); okEl.classList.add('hidden');
+
+  const vehicleId = document.getElementById('rev-vehicle').value;
+  const date      = document.getElementById('rev-date').value;
+  const amount    = document.getElementById('rev-amount').value;
+  const note      = document.getElementById('rev-note').value.trim();
+
+  const fail = (m) => { errEl.textContent = m; errEl.classList.remove('hidden'); };
+  if (!vehicleId) return fail('Veuillez sélectionner un véhicule.');
+  if (!date) return fail('Veuillez indiquer la date.');
+  if (amount === '' || parseFloat(amount) <= 0) return fail('Le montant doit être supérieur à 0.');
+
+  const body = { date, amount_fcfa: parseFloat(amount) };
+  if (note) body.note = note;
+
+  const btn = document.getElementById('btn-add-revenue');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/vehicles/${vehicleId}/revenues`, {
+      method: 'POST',
+      headers: { ...authHeader(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (res.ok) {
+      okEl.textContent = 'Recette enregistrée.';
+      okEl.classList.remove('hidden');
+      document.getElementById('rev-amount').value = '';
+      document.getElementById('rev-note').value = '';
+      loadDashboard();  // refresh KPIs (recettes + bénéfice net)
+      setTimeout(() => okEl.classList.add('hidden'), 4000);
+    } else {
+      const detail = json.detail;
+      fail(Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : (detail || "Erreur lors de l'enregistrement."));
+    }
+  } catch {
+    fail('Erreur réseau. Réessayez.');
+  }
+  btn.disabled = false;
+});
 
 // ── Fetch plan usage (US-046) ────────────────────────────────────────────────
 async function loadPlanUsage() {
@@ -82,6 +138,14 @@ function renderKPIs(data) {
   document.getElementById('kpi-total-spend').textContent = fcfa(fin.total_spend_fcfa);
   document.getElementById('kpi-spend-breakdown').textContent =
     `Carburant ${fcfa(fin.fuel_total_fcfa)} · Maintenance ${fcfa(fin.maintenance_total_fcfa)}`;
+
+  document.getElementById('kpi-revenue').textContent = fcfa(fin.total_revenue_fcfa);
+
+  const net = parseFloat(fin.net_profit_fcfa) || 0;
+  const netEl = document.getElementById('kpi-net-profit');
+  netEl.textContent = fcfa(net);
+  netEl.classList.toggle('text-red-600', net < 0);
+  netEl.classList.toggle('text-[#005F02]', net >= 0);
 
   const distance = parseInt(fin.total_distance_km) || 0;
   const costPerKm = parseFloat(fin.cost_per_km_fcfa) || 0;

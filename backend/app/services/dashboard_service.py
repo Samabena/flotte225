@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.fuel_entry import FuelEntry
 from app.models.maintenance_expense import MaintenanceExpense
+from app.models.revenue import Revenue
 from app.models.vehicle import Vehicle
 from app.models.vehicle_driver import VehicleDriver
 from app.models.user import User
@@ -47,6 +48,15 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
     )
 
     grand_total = Decimal(str(fuel_total)) + Decimal(str(maintenance_total))
+
+    revenue_total = (
+        db.query(func.coalesce(func.sum(Revenue.amount_fcfa), 0))
+        .join(Vehicle, Revenue.vehicle_id == Vehicle.id)
+        .filter(Vehicle.owner_id == owner_id)
+        .scalar()
+    )
+    revenue_total = Decimal(str(revenue_total))
+    net_profit = revenue_total - grand_total
 
     total_distance = (
         db.query(func.coalesce(func.sum(FuelEntry.distance_km), 0))
@@ -105,6 +115,8 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
         total_spend_fcfa=grand_total,
         fuel_total_fcfa=Decimal(str(fuel_total)),
         maintenance_total_fcfa=Decimal(str(maintenance_total)),
+        total_revenue_fcfa=revenue_total,
+        net_profit_fcfa=net_profit,
         total_distance_km=total_distance,
         cost_per_km_fcfa=cost_per_km,
         spend_per_vehicle=spend_per_vehicle,
