@@ -50,12 +50,12 @@
     .faq-chevron { transition: transform .2s; }
   </style>
 </head>
-<body class="bg-white">
+<body class="bg-white overflow-x-hidden">
 
   <!-- ─────────────────────────── NAVBAR ─────────────────────────── -->
   <header class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
     <nav class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-      <a href="#top" class="text-2xl font-bold text-green tracking-wide">
+      <a href="#top" class="text-xl sm:text-2xl font-bold text-green tracking-wide shrink-0">
         Flotte<span class="text-gold">225</span>
       </a>
       <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
@@ -64,16 +64,16 @@
         <a href="#tarifs" class="hover:text-green">Tarifs</a>
         <a href="#faq" class="hover:text-green">FAQ</a>
       </div>
-      <div class="flex items-center gap-3">
-        <a href="login" class="hidden sm:inline-block px-4 py-2 rounded-lg btn-ghost text-sm font-semibold">Se connecter</a>
-        <a href="login#register" class="px-4 py-2 rounded-lg btn-primary text-sm font-semibold">Créer un compte</a>
+      <div class="flex items-center gap-2 sm:gap-3">
+        <a href="login" class="px-3 sm:px-4 py-2 rounded-lg btn-ghost text-sm font-semibold whitespace-nowrap">Se connecter</a>
+        <a href="login#register" class="px-3 sm:px-4 py-2 rounded-lg btn-primary text-sm font-semibold whitespace-nowrap">Créer un compte</a>
       </div>
     </nav>
   </header>
 
   <!-- ─────────────────────────── HERO ─────────────────────────── -->
   <section id="top" class="hero-grid-bg">
-    <div class="max-w-6xl mx-auto px-5 pt-16 pb-20 grid md:grid-cols-2 gap-12 items-center">
+    <div class="max-w-6xl mx-auto px-5 pt-10 pb-14 sm:pt-16 sm:pb-20 grid md:grid-cols-2 gap-10 md:gap-12 items-center">
       <div>
         <span class="inline-flex items-center gap-2 bg-green-light text-green text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
           🚚 Toute votre flotte, en un seul endroit
@@ -350,7 +350,8 @@
     </div>
 
     <!-- Tableau comparatif des fonctionnalités -->
-    <div class="mt-16 overflow-x-auto">
+    <p class="md:hidden text-center text-xs text-gray-400 mt-12 mb-2">Faites défiler le tableau horizontalement →</p>
+    <div class="mt-2 md:mt-16 overflow-x-auto max-w-full">
       <table class="w-full min-w-[760px] border-collapse text-sm">
         <thead>
           <tr class="border-b-2 border-gray-200">
