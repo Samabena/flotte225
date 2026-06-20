@@ -5,6 +5,7 @@ from app.core.deps import get_current_owner
 from app.models.user import User
 from app.schemas.driver_mgmt import (
     DriverCreate,
+    DriverRename,
     DriverStatusUpdate,
     DriverPasswordReset,
     DriverResponse,
@@ -54,6 +55,22 @@ def set_driver_status(
     return _ok(
         data=DriverResponse.model_validate(driver).model_dump(),
         message=f"Chauffeur {action} avec succès.",
+    )
+
+
+@router.patch("/{driver_id}/name")
+def rename_driver(
+    driver_id: int,
+    body: DriverRename,
+    owner: User = Depends(get_current_owner),
+    db: Session = Depends(get_db),
+):
+    driver = driver_mgmt_service.rename_driver(
+        db, owner.id, driver_id, body.full_name
+    )
+    return _ok(
+        data=DriverResponse.model_validate(driver).model_dump(),
+        message="Nom du chauffeur modifié avec succès.",
     )
 
 

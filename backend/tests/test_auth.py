@@ -144,6 +144,26 @@ def test_login_success(client, db):
     assert data["role"] == "OWNER"
 
 
+def test_me_returns_identity(client, db):
+    email = "me_test@flotte225.ci"
+    _register_and_verify(client, db, email)
+    login = client.post(
+        "/api/v1/auth/login", json={"identifier": email, "password": "Password1"}
+    )
+    token = login.json()["access_token"]
+    res = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["full_name"] == "Login Test"
+    assert data["role"] == "OWNER"
+    assert data["email"] == email
+
+
+def test_me_requires_auth(client):
+    res = client.get("/api/v1/auth/me")
+    assert res.status_code == 403
+
+
 def test_login_wrong_password(client, db):
     email = "login_bad@flotte225.ci"
     _register_and_verify(client, db, email)

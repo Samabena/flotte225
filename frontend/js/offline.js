@@ -203,13 +203,25 @@
   };
 
   // ── "Install this app" prompt (Add to Home Screen) ───────────────────────────
-  const DISMISS_KEY = 'flotte225-install-dismissed';
+  // "Plus tard" snoozes for a week (so the prompt comes back) — we only hide it
+  // for good once the app is actually installed.
+  const SNOOZE_KEY = 'flotte225-install-snooze';     // ms timestamp to hide until
+  const INSTALLED_KEY = 'flotte225-installed';
+  const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
   const isStandalone = () =>
     window.matchMedia('(display-mode: standalone)').matches ||
     window.navigator.standalone === true;
+  const isSnoozed = () => {
+    if (localStorage.getItem(INSTALLED_KEY) === '1') return true;
+    return Date.now() < parseInt(localStorage.getItem(SNOOZE_KEY) || '0', 10);
+  };
+
+  window.addEventListener('appinstalled', () => {
+    localStorage.setItem(INSTALLED_KEY, '1');
+  });
 
   function showInstallBanner(onInstall, iosHint) {
-    if (localStorage.getItem(DISMISS_KEY) === '1' || isStandalone()) return;
+    if (isSnoozed() || isStandalone()) return;
     const bar = document.createElement('div');
     bar.style.cssText =
       'position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:9998;' +
@@ -234,7 +246,10 @@
     bar.style.position = 'fixed';
     document.body.appendChild(bar);
 
-    const close = () => { localStorage.setItem(DISMISS_KEY, '1'); bar.remove(); };
+    const close = () => {
+      localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS));
+      bar.remove();
+    };
     const no = bar.querySelector('#fl-inst-no');
     if (no) no.addEventListener('click', close);
     const yes = bar.querySelector('#fl-inst-yes');
@@ -249,9 +264,12 @@
     showInstallBanner(async () => {
       if (!deferredPrompt) return;
       deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
+      const choice = await deferredPrompt.userChoice;
       deferredPrompt = null;
-      localStorage.setItem(DISMISS_KEY, '1');
+      // If they dismissed the native dialog, snooze; "accepted" → appinstalled fires.
+      if (choice && choice.outcome !== 'accepted') {
+        localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS));
+      }
     }, false);
   });
 

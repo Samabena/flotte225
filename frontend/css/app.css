@@ -75,7 +75,9 @@ body {
 #sidebar { transition: width 0.25s ease; overflow: hidden; }
 #sidebar.collapsed { width: 3.5rem; padding-left: 0.625rem; padding-right: 0.625rem; }
 #sidebar.collapsed .sidebar-label { display: none; }
+/* Collapsed: drop the brand mark so only the toggle chevron remains, centered. */
 #sidebar.collapsed .sidebar-logo { justify-content: center; }
+#sidebar.collapsed .sidebar-logo [data-flogo] { display: none; }
 #sidebar.collapsed nav a,
 #sidebar.collapsed nav button,
 #sidebar.collapsed .sidebar-action-btn { justify-content: center; }
@@ -96,6 +98,19 @@ body {
              transition: transform 0.25s ease !important; }
   #sidebar.mobile-open { transform: translateX(0) !important; }
   #mobile-topbar { display: flex !important; }
+  /* In drawer mode the menu opens via the ☰ button and closes by tapping the
+     backdrop, so the desktop collapse chevron is redundant — hide it. */
+  #sidebar-toggle { display: none !important; }
+  /* Collapse is a desktop-only feature. The .collapsed class is persisted in
+     localStorage and re-applied on load regardless of screen, so neutralize it
+     here: the mobile drawer must always open fully expanded (icons + labels). */
+  #sidebar.collapsed { padding-left: 1.25rem !important; padding-right: 1.25rem !important; }
+  #sidebar.collapsed .sidebar-label { display: inline !important; }
+  #sidebar.collapsed .sidebar-logo,
+  #sidebar.collapsed nav a,
+  #sidebar.collapsed nav button,
+  #sidebar.collapsed .sidebar-action-btn,
+  #sidebar.collapsed .sidebar-bottom-btn { justify-content: flex-start !important; }
   /* Clear the 56px fixed topbar; !important to beat Tailwind's p-4 on <main>. */
   main { padding-top: 4.5rem !important; }
 }

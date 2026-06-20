@@ -32,6 +32,17 @@ class DriverCreate(BaseModel):
         return v.strip()
 
 
+class DriverRename(BaseModel):
+    full_name: str
+
+    @field_validator("full_name")
+    @classmethod
+    def full_name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Le nom complet est requis")
+        return v.strip()
+
+
 class DriverStatusUpdate(BaseModel):
     is_disabled: bool
 

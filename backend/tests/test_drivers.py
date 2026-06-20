@@ -252,6 +252,49 @@ class TestManageDriver:
         )
         assert login.status_code == 200
 
+    def test_owner_can_rename_driver(self, client, db):
+        _seed_plans(db)
+        owner_token = _register_owner(client, db, "owner47k@test.ci")
+        driver_id = self._create_driver(client, db, owner_token, "drvr47k")
+
+        res = client.patch(
+            f"/api/v1/drivers/{driver_id}/name",
+            json={"full_name": "Nouveau Nom"},
+            headers=_headers(owner_token),
+        )
+        assert res.status_code == 200
+        assert res.json()["data"]["full_name"] == "Nouveau Nom"
+
+        # Persisted in the list
+        list_res = client.get("/api/v1/drivers", headers=_headers(owner_token))
+        names = {d["id"]: d["full_name"] for d in list_res.json()}
+        assert names[driver_id] == "Nouveau Nom"
+
+    def test_rename_empty_name_returns_422(self, client, db):
+        _seed_plans(db)
+        owner_token = _register_owner(client, db, "owner47l@test.ci")
+        driver_id = self._create_driver(client, db, owner_token, "drvr47l")
+
+        res = client.patch(
+            f"/api/v1/drivers/{driver_id}/name",
+            json={"full_name": "   "},
+            headers=_headers(owner_token),
+        )
+        assert res.status_code == 422
+
+    def test_owner_cannot_rename_other_owners_driver(self, client, db):
+        _seed_plans(db)
+        owner_a = _register_owner(client, db, "owner47m@test.ci")
+        owner_b = _register_owner(client, db, "owner47n@test.ci")
+        driver_id = self._create_driver(client, db, owner_a, "drvr47m")
+
+        res = client.patch(
+            f"/api/v1/drivers/{driver_id}/name",
+            json={"full_name": "Hacked"},
+            headers=_headers(owner_b),
+        )
+        assert res.status_code == 404
+
     def test_owner_can_delete_driver(self, client, db):
         _seed_plans(db)
         owner_token = _register_owner(client, db, "owner47j@test.ci")

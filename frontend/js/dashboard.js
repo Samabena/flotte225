@@ -31,6 +31,35 @@ document.getElementById('upgrade-modal-close').addEventListener('click', () => {
   document.getElementById('modal-upgrade').classList.add('hidden');
 });
 
+// ── Greeting (by name) ───────────────────────────────────────────────────────
+function greetingWord() {
+  const hour = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'Africa/Abidjan' })
+  ).getHours();
+  return hour >= 18 ? 'Bonsoir' : 'Bonjour';
+}
+
+async function loadMe() {
+  const wordEl = document.getElementById('greeting-word');
+  const nameEl = document.getElementById('owner-name');
+  if (wordEl) wordEl.textContent = greetingWord();
+  // Show a cached name immediately, then refresh from the server.
+  const cached = localStorage.getItem('owner_full_name');
+  if (cached && nameEl) nameEl.textContent = cached;
+  try {
+    const res = await fetch(`${API}/auth/me`, { headers: authHeader() });
+    if (!res.ok) return;
+    const me = await res.json();
+    const name = (me.full_name || '').trim();
+    if (name) {
+      localStorage.setItem('owner_full_name', name);
+      if (nameEl) nameEl.textContent = name;
+    }
+  } catch (e) {
+    /* keep cached / placeholder name */
+  }
+}
+
 // ── Fetch dashboard data ─────────────────────────────────────────────────────
 async function loadDashboard() {
   let data;
@@ -934,5 +963,6 @@ async function loadOwnerFuelEntries() {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+loadMe();
 loadDashboard();
 loadPlanUsage();

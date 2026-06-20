@@ -25,6 +25,23 @@ function setGreeting(name) {
   if (name) document.getElementById('driver-name').textContent = name;
 }
 
+// Fetch the signed-in driver's real name so the header greets them by name
+// instead of the "Chauffeur" placeholder (the JWT carries no name).
+async function loadMe() {
+  try {
+    const res = await fetch(`${API}/auth/me`, { headers: authHeader() });
+    if (!res.ok) return;
+    const me = await res.json();
+    const name = (me.full_name || '').trim();
+    if (name) {
+      localStorage.setItem('driver_full_name', name);
+      setGreeting(name);
+    }
+  } catch (e) {
+    /* keep whatever name we already have */
+  }
+}
+
 const savedName    = localStorage.getItem('driver_full_name');
 const savedStatus  = localStorage.getItem('driver_driving_status') === 'true';
 const savedVehicle = localStorage.getItem('driver_active_vehicle_name') || '—';
@@ -356,4 +373,5 @@ function esc(str) {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+loadMe();
 loadVehicles().then(() => loadRecentFuel());
