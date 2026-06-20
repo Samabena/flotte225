@@ -752,3 +752,90 @@ def test_driver_expense_client_uuid_is_idempotent(
         "/api/v1/owner/maintenance-expenses", headers=owner_headers
     )
     assert len(owner_list.json()["data"]) == 1
+
+
+# ── Phase B: Revenue journal ──────────────────────────────────────────────────
+
+
+def test_owner_revenue_and_net_profit_on_dashboard(client, db, owner_headers):
+    vid = _create_vehicle(client, owner_headers, "REV-001-CI")
+    # Revenue 100 000, maintenance expense 30 000 → net = 70 000
+    client.post(
+        f"/api/v1/vehicles/{vid}/revenues",
+        json={"date": str(date.today()), "amount_fcfa": 100000},
+        headers=owner_headers,
+    )
+    client.post(
+        f"/api/v1/vehicles/{vid}/maintenance-expenses",
+        json=_expense_payload(cost_fcfa=30000),
+        headers=owner_headers,
+    )
+    fin = client.get("/api/v1/dashboard/owner", headers=owner_headers).json()["data"][
+        "financial"
+    ]
+    assert float(fin["total_revenue_fcfa"]) == 100000
+    assert float(fin["total_spend_fcfa"]) == 30000
+    assert float(fin["net_profit_fcfa"]) == 70000
+
+
+def test_driver_can_log_revenue_for_assigned_vehicle(
+    client, db, owner_headers, driver_token, driver_headers
+):
+    vid = _create_vehicle(client, owner_headers, "REV-002-CI")
+    driver_id = _get_driver_id(driver_token)
+    client.post(
+        f"/api/v1/vehicles/{vid}/drivers",
+        json={"driver_id": driver_id},
+        headers=owner_headers,
+    )
+    res = client.post(
+        f"/api/v1/driver/vehicles/{vid}/revenues",
+        json={"date": str(date.today()), "amount_fcfa": 25000, "note": "Recette du jour"},
+        headers=driver_headers,
+    )
+    assert res.status_code == 200
+    assert float(res.json()["data"]["amount_fcfa"]) == 25000
+    owner_list = client.get("/api/v1/owner/revenues", headers=owner_headers)
+    assert len(owner_list.json()["data"]) == 1
+
+
+def test_driver_cannot_log_revenue_for_unassigned_vehicle(
+    client, db, owner_headers, driver_token, driver_headers
+):
+    vid = _create_vehicle(client, owner_headers, "REV-003-CI")
+    res = client.post(
+        f"/api/v1/driver/vehicles/{vid}/revenues",
+        json={"date": str(date.today()), "amount_fcfa": 25000},
+        headers=driver_headers,
+    )
+    assert res.status_code == 403
+
+
+def test_revenue_validation_and_idempotency(
+    client, db, owner_headers, driver_token, driver_headers
+):
+    vid = _create_vehicle(client, owner_headers, "REV-004-CI")
+    driver_id = _get_driver_id(driver_token)
+    client.post(
+        f"/api/v1/vehicles/{vid}/drivers",
+        json={"driver_id": driver_id},
+        headers=owner_headers,
+    )
+    # amount must be > 0
+    bad = client.post(
+        f"/api/v1/driver/vehicles/{vid}/revenues",
+        json={"date": str(date.today()), "amount_fcfa": 0},
+        headers=driver_headers,
+    )
+    assert bad.status_code == 422
+    # idempotent on client_uuid
+    payload = {
+        "date": str(date.today()),
+        "amount_fcfa": 15000,
+        "client_uuid": "33333333-3333-4333-8333-333333333333",
+    }
+    url = f"/api/v1/driver/vehicles/{vid}/revenues"
+    a = client.post(url, json=payload, headers=driver_headers)
+    b = client.post(url, json=payload, headers=driver_headers)
+    assert a.json()["data"]["id"] == b.json()["data"]["id"]
+    assert len(client.get("/api/v1/owner/revenues", headers=owner_headers).json()["data"]) == 1

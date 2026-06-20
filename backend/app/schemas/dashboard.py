@@ -19,6 +19,8 @@ class FinancialSummary(BaseModel):
     total_spend_fcfa: Decimal  # grand total = fuel + maintenance
     fuel_total_fcfa: Decimal
     maintenance_total_fcfa: Decimal
+    total_revenue_fcfa: Decimal
+    net_profit_fcfa: Decimal  # revenue - total spend
     total_distance_km: int
     cost_per_km_fcfa: Decimal
     spend_per_vehicle: list[VehicleSpend]

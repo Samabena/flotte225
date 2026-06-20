@@ -14,7 +14,12 @@ from app.schemas.maintenance_expense import (
     MaintenanceExpenseCreate,
     MaintenanceExpenseResponse,
 )
-from app.services import vehicle_service, maintenance_expense_service
+from app.schemas.revenue import RevenueCreate, RevenueResponse
+from app.services import (
+    vehicle_service,
+    maintenance_expense_service,
+    revenue_service,
+)
 
 router = APIRouter(prefix="/driver", tags=["driver"])
 
@@ -97,3 +102,27 @@ def driver_list_expenses(
     return _ok(
         data=[MaintenanceExpenseResponse.model_validate(e) for e in expenses]
     )
+
+
+# ── Driver-logged revenues (for assigned vehicles) ────────────────────────────
+
+
+@router.post("/vehicles/{vehicle_id}/revenues", response_model=None)
+def driver_create_revenue(
+    vehicle_id: int,
+    body: RevenueCreate,
+    driver: User = Depends(get_current_driver),
+    db: Session = Depends(get_db),
+):
+    rev = revenue_service.create_revenue_as_driver(db, driver, vehicle_id, body)
+    return _ok(data=RevenueResponse.model_validate(rev), message="Recette enregistrée")
+
+
+@router.get("/vehicles/{vehicle_id}/revenues", response_model=None)
+def driver_list_revenues(
+    vehicle_id: int,
+    driver: User = Depends(get_current_driver),
+    db: Session = Depends(get_db),
+):
+    revs = revenue_service.list_vehicle_revenues_as_driver(db, driver, vehicle_id)
+    return _ok(data=[RevenueResponse.model_validate(r) for r in revs])
