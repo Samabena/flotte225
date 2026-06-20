@@ -685,3 +685,46 @@ def test_maintenance_expense_validation(client, db, owner_headers):
         ).status_code
         == 422
     )
+
+
+def test_driver_can_log_expense_for_assigned_vehicle(
+    client, db, owner_headers, driver_token, driver_headers
+):
+    vid = _create_vehicle(client, owner_headers, "MX-DRV-CI")
+    driver_id = _get_driver_id(driver_token)
+    client.post(
+        f"/api/v1/vehicles/{vid}/drivers",
+        json={"driver_id": driver_id},
+        headers=owner_headers,
+    )
+
+    res = client.post(
+        f"/api/v1/driver/vehicles/{vid}/maintenance-expenses",
+        json=_expense_payload(type="Freins"),
+        headers=driver_headers,
+    )
+    assert res.status_code == 200
+    assert res.json()["data"]["type"] == "Freins"
+
+    # Owner sees the driver-logged expense in their list
+    owner_list = client.get(
+        "/api/v1/owner/maintenance-expenses", headers=owner_headers
+    )
+    assert len(owner_list.json()["data"]) == 1
+    # Driver can list expenses for that vehicle too
+    drv_list = client.get(
+        f"/api/v1/driver/vehicles/{vid}/maintenance-expenses", headers=driver_headers
+    )
+    assert len(drv_list.json()["data"]) == 1
+
+
+def test_driver_cannot_log_expense_for_unassigned_vehicle(
+    client, db, owner_headers, driver_token, driver_headers
+):
+    vid = _create_vehicle(client, owner_headers, "MX-DRV2-CI")  # not assigned
+    res = client.post(
+        f"/api/v1/driver/vehicles/{vid}/maintenance-expenses",
+        json=_expense_payload(),
+        headers=driver_headers,
+    )
+    assert res.status_code == 403

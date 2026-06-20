@@ -10,7 +10,11 @@ from app.schemas.vehicle import (
     VehicleResponse,
     DriverSummary,
 )
-from app.services import vehicle_service
+from app.schemas.maintenance_expense import (
+    MaintenanceExpenseCreate,
+    MaintenanceExpenseResponse,
+)
+from app.services import vehicle_service, maintenance_expense_service
 
 router = APIRouter(prefix="/driver", tags=["driver"])
 
@@ -59,4 +63,37 @@ def deactivate(
     return _ok(
         data=DriverSummary.model_validate(updated),
         message="Statut désactivé",
+    )
+
+
+# ── Driver-logged maintenance expenses (for assigned vehicles) ────────────────
+
+
+@router.post("/vehicles/{vehicle_id}/maintenance-expenses", response_model=None)
+def driver_create_expense(
+    vehicle_id: int,
+    body: MaintenanceExpenseCreate,
+    driver: User = Depends(get_current_driver),
+    db: Session = Depends(get_db),
+):
+    expense = maintenance_expense_service.create_expense_as_driver(
+        db, driver, vehicle_id, body
+    )
+    return _ok(
+        data=MaintenanceExpenseResponse.model_validate(expense),
+        message="Dépense enregistrée",
+    )
+
+
+@router.get("/vehicles/{vehicle_id}/maintenance-expenses", response_model=None)
+def driver_list_expenses(
+    vehicle_id: int,
+    driver: User = Depends(get_current_driver),
+    db: Session = Depends(get_db),
+):
+    expenses = maintenance_expense_service.list_vehicle_expenses_as_driver(
+        db, driver, vehicle_id
+    )
+    return _ok(
+        data=[MaintenanceExpenseResponse.model_validate(e) for e in expenses]
     )
