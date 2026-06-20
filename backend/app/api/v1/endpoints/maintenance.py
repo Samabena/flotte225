@@ -5,8 +5,17 @@ from app.core.database import get_db
 from app.core.deps import get_current_owner
 from app.models.user import User
 from app.schemas.maintenance import MaintenanceUpdate, MaintenanceResponse
+from app.schemas.maintenance_expense import (
+    MaintenanceExpenseCreate,
+    MaintenanceExpenseUpdate,
+    MaintenanceExpenseResponse,
+)
 from app.schemas.alert import AlertResponse
-from app.services import maintenance_service, alert_service
+from app.services import (
+    maintenance_service,
+    maintenance_expense_service,
+    alert_service,
+)
 
 router = APIRouter(tags=["maintenance"])
 
@@ -42,6 +51,79 @@ def update_maintenance(
         data=MaintenanceResponse.model_validate(record),
         message="Maintenance mise à jour",
     )
+
+
+# ── Maintenance expense journal (date / km / type / coût / lieu) ──────────────
+
+
+@router.post("/vehicles/{vehicle_id}/maintenance-expenses", response_model=None)
+def create_expense(
+    vehicle_id: int,
+    body: MaintenanceExpenseCreate,
+    owner: User = Depends(get_current_owner),
+    db: Session = Depends(get_db),
+):
+    expense = maintenance_expense_service.create_expense(
+        db, owner.id, vehicle_id, body
+    )
+    return _ok(
+        data=MaintenanceExpenseResponse.model_validate(expense),
+        message="Dépense enregistrée",
+    )
+
+
+@router.get("/vehicles/{vehicle_id}/maintenance-expenses", response_model=None)
+def list_vehicle_expenses(
+    vehicle_id: int,
+    owner: User = Depends(get_current_owner),
+    db: Session = Depends(get_db),
+):
+    expenses = maintenance_expense_service.list_vehicle_expenses(
+        db, owner.id, vehicle_id
+    )
+    return _ok(
+        data=[MaintenanceExpenseResponse.model_validate(e) for e in expenses]
+    )
+
+
+@router.get("/owner/maintenance-expenses", response_model=None)
+def list_owner_expenses(
+    vehicle_id: int | None = None,
+    owner: User = Depends(get_current_owner),
+    db: Session = Depends(get_db),
+):
+    expenses = maintenance_expense_service.list_owner_expenses(
+        db, owner.id, vehicle_id
+    )
+    return _ok(
+        data=[MaintenanceExpenseResponse.model_validate(e) for e in expenses]
+    )
+
+
+@router.put("/maintenance-expenses/{expense_id}", response_model=None)
+def update_expense(
+    expense_id: int,
+    body: MaintenanceExpenseUpdate,
+    owner: User = Depends(get_current_owner),
+    db: Session = Depends(get_db),
+):
+    expense = maintenance_expense_service.update_expense(
+        db, owner.id, expense_id, body
+    )
+    return _ok(
+        data=MaintenanceExpenseResponse.model_validate(expense),
+        message="Dépense mise à jour",
+    )
+
+
+@router.delete("/maintenance-expenses/{expense_id}", response_model=None)
+def delete_expense(
+    expense_id: int,
+    owner: User = Depends(get_current_owner),
+    db: Session = Depends(get_db),
+):
+    maintenance_expense_service.delete_expense(db, owner.id, expense_id)
+    return _ok(message="Dépense supprimée")
 
 
 # ── US-026/027/028: Alert engine ──────────────────────────────────────────────
