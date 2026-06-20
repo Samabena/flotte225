@@ -10,7 +10,17 @@
     <div class="kpi">
       <div class="label">Dépense totale</div>
       <div class="value">{{ totals.total_spend_fcfa | format_fcfa }}</div>
-      <div class="sub">sur la période sélectionnée</div>
+      <div class="sub">carburant + maintenance</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Dont carburant</div>
+      <div class="value">{{ totals.fuel_spend_fcfa | format_fcfa }}</div>
+      <div class="sub">{{ totals.entries_count }} plein{{ 's' if totals.entries_count > 1 else '' }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Dont maintenance</div>
+      <div class="value">{{ totals.maintenance_spend_fcfa | format_fcfa }}</div>
+      <div class="sub">réparations & entretien</div>
     </div>
     <div class="kpi">
       <div class="label">Litres consommés</div>

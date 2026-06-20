@@ -19,6 +19,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.fuel_entry import FuelEntry
+from app.models.maintenance_expense import MaintenanceExpense
 from app.models.user import User
 from app.models.vehicle import Vehicle
 from app.services.alert_service import compute_alerts
@@ -239,9 +240,23 @@ def build_fleet_context(
         for a in alerts_raw
     ]
 
+    # Maintenance expenses over the period (fleet-wide)
+    maintenance_total = (
+        db.query(func.coalesce(func.sum(MaintenanceExpense.cost_fcfa), 0))
+        .join(Vehicle, MaintenanceExpense.vehicle_id == Vehicle.id)
+        .filter(
+            Vehicle.owner_id == owner.id,
+            MaintenanceExpense.date >= date_from,
+            MaintenanceExpense.date <= date_to,
+        )
+        .scalar()
+    )
+    maintenance_total = float(maintenance_total or 0)
+    grand_total = total_spend + maintenance_total
+
     active_vehicles = sum(1 for v in vehicles if v.status == "active")
     active_drivers = sum(1 for d in drivers if not d.is_disabled)
-    cost_per_km = (total_spend / total_km) if total_km else 0
+    cost_per_km = (grand_total / total_km) if total_km else 0
 
     return {
         "company_name": owner.company_name or owner.full_name,
@@ -250,7 +265,9 @@ def build_fleet_context(
         "date_to": _format_date_fr(date_to),
         "generated_at": datetime.now().strftime("%d/%m/%Y à %H:%M"),
         "totals": {
-            "total_spend_fcfa": total_spend,
+            "total_spend_fcfa": grand_total,
+            "fuel_spend_fcfa": total_spend,
+            "maintenance_spend_fcfa": maintenance_total,
             "total_litres": total_litres,
             "total_km": total_km,
             "avg_consumption": avg_consumption,

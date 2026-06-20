@@ -211,6 +211,36 @@ class TestDashboardFinancial:
         financial = res.json()["data"]["financial"]
         assert float(financial["total_spend_fcfa"]) == 100000
 
+    def test_total_spend_includes_maintenance_and_cost_per_km(self, client, db):
+        _seed_plans(db)
+        owner_token = _register_and_verify(client, db, "fin_maint@test.ci")
+        owner_headers = {"Authorization": f"Bearer {owner_token}"}
+        _, driver_id = _make_driver_token(client, db, owner_token, "findrvrmx")
+
+        v1 = _create_vehicle(client, owner_headers, plate="FIN-010-CI")
+
+        # Fuel: 60 000 FCFA over 200 km
+        entry = _add_fuel(db, v1, driver_id, 10200, 60000)
+        entry.distance_km = 200
+        db.commit()
+
+        # Maintenance: 40 000 FCFA
+        client.post(
+            f"/api/v1/vehicles/{v1}/maintenance-expenses",
+            json={"date": str(date.today()), "type": "Pneus", "cost_fcfa": 40000},
+            headers=owner_headers,
+        )
+
+        financial = client.get(
+            "/api/v1/dashboard/owner", headers=owner_headers
+        ).json()["data"]["financial"]
+
+        assert float(financial["fuel_total_fcfa"]) == 60000
+        assert float(financial["maintenance_total_fcfa"]) == 40000
+        assert float(financial["total_spend_fcfa"]) == 100000  # grand total
+        assert int(financial["total_distance_km"]) == 200
+        assert float(financial["cost_per_km_fcfa"]) == 500  # 100000 / 200
+
     def test_spend_per_vehicle_is_grouped(self, client, db):
         _seed_plans(db)
         owner_token = _register_and_verify(client, db, "fin2@test.ci")

@@ -135,10 +135,16 @@
     <h1 class="text-2xl font-bold text-[#005F02] mb-6">Tableau de bord</h1>
 
     <!-- KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div class="card p-5">
         <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Dépense totale</p>
         <p class="text-2xl font-bold text-[#005F02]" id="kpi-total-spend">—</p>
+        <p class="text-xs text-gray-400 mt-1" id="kpi-spend-breakdown"></p>
+      </div>
+      <div class="card p-5">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Coût / km</p>
+        <p class="text-2xl font-bold text-[#005F02]" id="kpi-cost-per-km">—</p>
+        <p class="text-xs text-gray-400 mt-1" id="kpi-distance"></p>
       </div>
       <div class="card p-5">
         <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Véhicules actifs</p>
