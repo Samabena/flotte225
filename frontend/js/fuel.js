@@ -267,30 +267,38 @@ document.getElementById('btn-submit').addEventListener('click', async () => {
     body.route_distance_km = routeData.route_distance_km;
   }
 
-  const res = await fetch(`${API}/fuel`, {
-    method: 'POST',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  // Offline-first: send now, or queue locally and sync on reconnect (idempotent).
+  const result = await Flotte.queueOrSend({ type: 'fuel', url: `${API}/fuel`, body });
 
-  const json = await res.json().catch(() => ({}));
-  if (res.ok) {
+  const resetForm = () => {
+    document.getElementById('f-odometer').value = '';
+    document.getElementById('f-quantity').value = '';
+    document.getElementById('f-amount').value   = '';
+    document.getElementById('f-date').value     = new Date().toISOString().split('T')[0];
+    document.getElementById('btn-clear-route').click();
+  };
+
+  if (result.ok && result.queued) {
+    okEl.textContent = 'Pas de réseau — saisie enregistrée et sera synchronisée automatiquement.';
+    okEl.classList.remove('hidden');
+    resetForm();
+    setTimeout(() => okEl.classList.add('hidden'), 5000);
+  } else if (result.ok) {
     okEl.textContent = 'Saisie enregistrée avec succès !';
     okEl.classList.remove('hidden');
-    // Reset form
-    document.getElementById('f-odometer').value  = '';
-    document.getElementById('f-quantity').value   = '';
-    document.getElementById('f-amount').value     = '';
-    document.getElementById('f-date').value       = new Date().toISOString().split('T')[0];
-    // Reset route
-    document.getElementById('btn-clear-route').click();
+    resetForm();
     loadHistory();
     setTimeout(() => okEl.classList.add('hidden'), 3000);
   } else {
-    errEl.textContent = json.detail || 'Erreur lors de l\'enregistrement.';
+    const detail = result.json && result.json.detail;
+    errEl.textContent = (Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : detail)
+      || 'Erreur lors de l\'enregistrement.';
     errEl.classList.remove('hidden');
   }
 });
+
+// Refresh history after a background sync flush
+if (window.Flotte) Flotte.onSync(() => loadHistory());
 
 // ── Load history ──────────────────────────────────────────────────────────────
 async function loadHistory() {

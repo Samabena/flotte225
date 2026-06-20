@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tableau de bord — Flotte225</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#005F02" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script>
@@ -494,6 +497,7 @@
   <script>
   (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle'),mb=document.getElementById('mobile-menu-btn'),bd=document.getElementById('sidebar-backdrop');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});if(mb&&bd){mb.addEventListener('click',function(){s.classList.add('mobile-open');bd.classList.add('show');});bd.addEventListener('click',function(){s.classList.remove('mobile-open');bd.classList.remove('show');});}})();
   </script>
+  <script src="js/offline.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>

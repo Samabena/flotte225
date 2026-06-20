@@ -178,6 +178,32 @@ def test_submit_fuel_entry_success(
     assert data["vehicle_id"] == vehicle_id
 
 
+def test_submit_with_client_uuid_is_idempotent(
+    client, db, owner_headers, driver_token, driver_headers
+):
+    """Re-sending the same client_uuid (offline sync replay) must not duplicate."""
+    veh = _create_vehicle(client, owner_headers, {"license_plate": "FU-IDEM-CI"})
+    vehicle_id = veh.json()["data"]["id"]
+    _setup_active_driver(
+        client, db, owner_headers, driver_token, driver_headers, vehicle_id
+    )
+
+    payload = {
+        **FUEL_PAYLOAD,
+        "vehicle_id": vehicle_id,
+        "client_uuid": "11111111-1111-4111-8111-111111111111",
+    }
+    first = client.post("/api/v1/fuel", json=payload, headers=driver_headers)
+    second = client.post("/api/v1/fuel", json=payload, headers=driver_headers)
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    # Same row returned, and only one entry exists for the driver.
+    assert first.json()["data"]["id"] == second.json()["data"]["id"]
+    listing = client.get("/api/v1/fuel", headers=driver_headers)
+    assert len(listing.json()["data"]) == 1
+
+
 def test_submit_calculates_consumption(
     client, db, owner_headers, driver_token, driver_headers
 ):

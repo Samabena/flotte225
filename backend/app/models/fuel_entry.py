@@ -30,6 +30,10 @@ class FuelEntry(Base):
     destination_lat: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
     destination_lng: Mapped[float | None] = mapped_column(Numeric(10, 7), nullable=True)
     route_distance_km: Mapped[float | None] = mapped_column(Numeric(8, 2), nullable=True)
+    # Client-generated UUID for idempotent offline sync (PWA)
+    client_uuid: Mapped[str | None] = mapped_column(
+        String(36), unique=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

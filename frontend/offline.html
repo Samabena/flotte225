@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hors ligne — Flotte225</title>
+  <style>
+    body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+           background:#F2E3BB; font-family:'Inter',system-ui,sans-serif; color:#1f2937; padding:1.5rem; }
+    .box { background:#fff; border-radius:1rem; box-shadow:0 4px 24px rgba(0,0,0,.10);
+           padding:2rem; max-width:24rem; text-align:center; }
+    h1 { color:#005F02; font-size:1.5rem; margin:0 0 .5rem; }
+    .gold { color:#C0B87A; }
+    p { color:#6b7280; font-size:.9rem; line-height:1.5; }
+    button { margin-top:1.25rem; background:#005F02; color:#fff; border:none; border-radius:.5rem;
+             padding:.65rem 1.25rem; font-weight:600; font-size:.875rem; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Flotte<span class="gold">225</span></h1>
+    <p><strong>Vous êtes hors ligne.</strong><br>
+       Cette page n'a pas encore été enregistrée pour une consultation hors connexion.
+       Vos saisies en attente seront envoyées automatiquement dès le retour du réseau.</p>
+    <button onclick="location.reload()">Réessayer</button>
+  </div>
+</body>
+</html>

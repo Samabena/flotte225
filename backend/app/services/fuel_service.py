@@ -86,6 +86,17 @@ def _get_owner_id_for_vehicle(db: Session, vehicle_id: int) -> int:
 
 
 def create_fuel_entry(db: Session, driver: User, data: FuelEntryCreate) -> FuelEntry:
+    # Idempotent offline sync: a re-sent entry (same client_uuid) returns the
+    # already-stored one instead of creating a duplicate.
+    if data.client_uuid:
+        existing = (
+            db.query(FuelEntry)
+            .filter(FuelEntry.client_uuid == data.client_uuid)
+            .first()
+        )
+        if existing:
+            return existing
+
     # Driver must be assigned to this vehicle
     assignment = (
         db.query(VehicleDriver)
@@ -129,6 +140,7 @@ def create_fuel_entry(db: Session, driver: User, data: FuelEntryCreate) -> FuelE
         destination_lat=data.destination_lat,
         destination_lng=data.destination_lng,
         route_distance_km=data.route_distance_km,
+        client_uuid=data.client_uuid,
     )
     db.add(entry)
     db.flush()  # get entry.id before logging

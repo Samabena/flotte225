@@ -16,6 +16,7 @@ class FuelEntryCreate(BaseModel):
     destination_lat: Decimal | None = None
     destination_lng: Decimal | None = None
     route_distance_km: Decimal | None = None
+    client_uuid: str | None = None  # idempotency key for offline sync
 
     @field_validator("odometer_km")
     @classmethod
@@ -70,6 +71,7 @@ class FuelEntryResponse(BaseModel):
     destination_lat: Decimal | None
     destination_lng: Decimal | None
     route_distance_km: Decimal | None
+    client_uuid: str | None
     created_at: dt.datetime
     updated_at: dt.datetime
 
