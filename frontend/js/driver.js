@@ -112,9 +112,16 @@ function persistStatus(summary, vehicleName, startKm) {
 }
 
 function showStatusError(msg) {
-  const errEl = document.getElementById('status-error');
-  errEl.textContent = msg;
-  errEl.classList.remove('hidden');
+  const el = document.getElementById('status-error');
+  el.textContent = msg;
+  el.className = 'mt-3 text-sm bg-red-50 border border-red-100 text-red-700 rounded-lg px-3 py-2';
+}
+
+function showStatusOk(msg) {
+  const el = document.getElementById('status-error');
+  el.textContent = msg;
+  el.className = 'mt-3 text-sm bg-green-50 border border-green-100 text-green-700 rounded-lg px-3 py-2';
+  setTimeout(() => el.classList.add('hidden'), 6000);
 }
 
 // ── Prendre le véhicule (démarrer un trajet) ─────────────────────────────────
@@ -136,24 +143,26 @@ document.getElementById('btn-activate').addEventListener('click', async () => {
   const selectedVehicle = assignedVehicles.find(v => v.id == vehicleId);
   const vehicleName = selectedVehicle ? `${selectedVehicle.name} (${selectedVehicle.license_plate})` : '';
 
-  const res = await fetch(`${API}/driver/activate`, {
-    method: 'POST',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      vehicle_id: parseInt(vehicleId),
-      start_odometer: parseInt(startKm),
-      client_uuid: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()),
-    }),
+  // Offline-first: send now, or queue and sync on reconnect (idempotent via client_uuid).
+  const result = await Flotte.queueOrSend({
+    type: 'trip-start',
+    url: `${API}/driver/activate`,
+    body: { vehicle_id: parseInt(vehicleId), start_odometer: parseInt(startKm) },
   });
 
   btn.disabled = false;
-  const json = await res.json().catch(() => ({}));
-  if (res.ok) {
-    persistStatus(json.data || {}, vehicleName, parseInt(startKm));
+  if (result.ok) {
+    // Optimistic UI for both online and queued (offline) cases.
+    persistStatus(result.data || { driving_status: true }, vehicleName, parseInt(startKm));
     applyStatus(true, vehicleName, parseInt(startKm));
     kmInput.value = '';
+    if (result.queued) {
+      showStatusOk('Pas de réseau — trajet démarré, sera synchronisé automatiquement.');
+    }
   } else {
-    showStatusError(json.detail || 'Erreur lors de la prise du véhicule.');
+    const detail = result.json && result.json.detail;
+    showStatusError((Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : detail)
+      || 'Erreur lors de la prise du véhicule.');
   }
 });
 
@@ -170,20 +179,24 @@ document.getElementById('btn-deactivate').addEventListener('click', async () => 
 
   const btn = document.getElementById('btn-deactivate');
   btn.disabled = true;
-  const res = await fetch(`${API}/driver/deactivate`, {
-    method: 'POST',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ end_odometer: parseInt(endKm) }),
+  const result = await Flotte.queueOrSend({
+    type: 'trip-end',
+    url: `${API}/driver/deactivate`,
+    body: { end_odometer: parseInt(endKm) },
   });
 
   btn.disabled = false;
-  const json = await res.json().catch(() => ({}));
-  if (res.ok) {
-    persistStatus(json.data || {}, '', '');
+  if (result.ok) {
+    persistStatus(result.data || { driving_status: false }, '', '');
     applyStatus(false, '', '');
     kmInput.value = '';
+    if (result.queued) {
+      showStatusOk('Pas de réseau — fin de trajet enregistrée, sera synchronisée automatiquement.');
+    }
   } else {
-    showStatusError(json.detail || 'Erreur lors de la remise du véhicule.');
+    const detail = result.json && result.json.detail;
+    showStatusError((Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : detail)
+      || 'Erreur lors de la remise du véhicule.');
   }
 });
 
