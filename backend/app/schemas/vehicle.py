@@ -73,3 +73,24 @@ class AssignDriverRequest(BaseModel):
 
 class ActivateRequest(BaseModel):
     vehicle_id: int
+    # Optional at the API (offline/legacy tolerant); the driver UI enforces it.
+    start_odometer: int | None = None
+    client_uuid: str | None = None
+
+    @field_validator("start_odometer")
+    @classmethod
+    def odometer_non_negative(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError("Le kilométrage doit être >= 0")
+        return v
+
+
+class DeactivateRequest(BaseModel):
+    end_odometer: int | None = None
+
+    @field_validator("end_odometer")
+    @classmethod
+    def odometer_non_negative(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError("Le kilométrage doit être >= 0")
+        return v

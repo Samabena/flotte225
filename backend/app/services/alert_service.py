@@ -14,6 +14,7 @@ from sqlalchemy import func, extract
 from app.models.vehicle import Vehicle
 from app.models.maintenance import Maintenance
 from app.models.fuel_entry import FuelEntry
+from app.models.trip_log import TripLog
 from app.schemas.alert import AlertResponse
 
 
@@ -25,12 +26,18 @@ def _days_until(d: date) -> int:
 
 
 def _latest_odometer(db: Session, vehicle_id: int) -> int | None:
-    result = (
+    fuel_max = (
         db.query(func.max(FuelEntry.odometer_km))
         .filter(FuelEntry.vehicle_id == vehicle_id)
         .scalar()
     )
-    return result
+    trip_max = (
+        db.query(func.max(TripLog.end_odometer))
+        .filter(TripLog.vehicle_id == vehicle_id)
+        .scalar()
+    )
+    values = [v for v in (fuel_max, trip_max) if v is not None]
+    return max(values) if values else None
 
 
 # ── US-026: Compliance date alerts ───────────────────────────────────────────

@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     reports,
     webhook,
     config,
+    trips,
 )
 
 api_router = APIRouter(prefix="/api/v1")
@@ -27,3 +28,4 @@ api_router.include_router(export.router)
 api_router.include_router(reports.router)
 api_router.include_router(webhook.router)
 api_router.include_router(config.router)
+api_router.include_router(trips.router)

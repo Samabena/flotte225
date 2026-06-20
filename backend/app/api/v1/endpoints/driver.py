@@ -4,7 +4,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_driver
 from app.models.user import User
-from app.schemas.vehicle import ActivateRequest, VehicleResponse, DriverSummary
+from app.schemas.vehicle import (
+    ActivateRequest,
+    DeactivateRequest,
+    VehicleResponse,
+    DriverSummary,
+)
 from app.services import vehicle_service
 
 router = APIRouter(prefix="/driver", tags=["driver"])
@@ -34,7 +39,9 @@ def activate(
     driver: User = Depends(get_current_driver),
     db: Session = Depends(get_db),
 ):
-    updated = vehicle_service.activate_driver(db, driver, body.vehicle_id)
+    updated = vehicle_service.activate_driver(
+        db, driver, body.vehicle_id, body.start_odometer, body.client_uuid
+    )
     return _ok(
         data=DriverSummary.model_validate(updated),
         message="Statut activé — vous êtes en mission",
@@ -43,9 +50,12 @@ def activate(
 
 @router.post("/deactivate", response_model=None)
 def deactivate(
-    driver: User = Depends(get_current_driver), db: Session = Depends(get_db)
+    body: DeactivateRequest | None = None,
+    driver: User = Depends(get_current_driver),
+    db: Session = Depends(get_db),
 ):
-    updated = vehicle_service.deactivate_driver(db, driver)
+    end_odometer = body.end_odometer if body else None
+    updated = vehicle_service.deactivate_driver(db, driver, end_odometer)
     return _ok(
         data=DriverSummary.model_validate(updated),
         message="Statut désactivé",
