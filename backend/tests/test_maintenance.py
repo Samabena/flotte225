@@ -528,3 +528,160 @@ def test_no_cost_spike_within_30_percent(
 
     res = client.get("/api/v1/owner/alerts", headers=owner_headers)
     assert not any(a["type"] == "cost_spike" for a in res.json()["data"])
+
+
+# ── Phase 3: Maintenance expense journal ──────────────────────────────────────
+
+
+def _expense_payload(**overrides):
+    payload = {
+        "date": str(date.today()),
+        "odometer_km": 10500,
+        "type": "Pneus",
+        "cost_fcfa": 45000,
+        "location": "Garage Adjamé",
+        "note": "2 pneus avant",
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_create_and_list_maintenance_expense(client, db, owner_headers):
+    vid = _create_vehicle(client, owner_headers, "MX-001-CI")
+    res = client.post(
+        f"/api/v1/vehicles/{vid}/maintenance-expenses",
+        json=_expense_payload(),
+        headers=owner_headers,
+    )
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["type"] == "Pneus"
+    assert float(data["cost_fcfa"]) == 45000
+    assert data["vehicle_id"] == vid
+
+    listing = client.get(
+        f"/api/v1/vehicles/{vid}/maintenance-expenses", headers=owner_headers
+    )
+    assert listing.status_code == 200
+    assert len(listing.json()["data"]) == 1
+
+
+def test_vidange_expense_updates_oil_change_km(client, db, owner_headers):
+    """A 'Vidange' expense with an odometer advances last_oil_change_km."""
+    vid = _create_vehicle(client, owner_headers, "MX-002-CI")
+    client.post(
+        f"/api/v1/vehicles/{vid}/maintenance-expenses",
+        json=_expense_payload(type="Vidange", odometer_km=12000),
+        headers=owner_headers,
+    )
+    rec = client.get(f"/api/v1/vehicles/{vid}/maintenance", headers=owner_headers)
+    assert rec.json()["data"]["last_oil_change_km"] == 12000
+
+
+def test_owner_maintenance_expenses_list_and_filter(client, db, owner_headers):
+    v1 = _create_vehicle(client, owner_headers, "MX-003-CI")
+    v2 = _create_vehicle(client, owner_headers, "MX-004-CI")
+    client.post(
+        f"/api/v1/vehicles/{v1}/maintenance-expenses",
+        json=_expense_payload(type="Freins"),
+        headers=owner_headers,
+    )
+    client.post(
+        f"/api/v1/vehicles/{v2}/maintenance-expenses",
+        json=_expense_payload(type="Révision"),
+        headers=owner_headers,
+    )
+    all_res = client.get("/api/v1/owner/maintenance-expenses", headers=owner_headers)
+    assert len(all_res.json()["data"]) == 2
+
+    filtered = client.get(
+        f"/api/v1/owner/maintenance-expenses?vehicle_id={v1}", headers=owner_headers
+    )
+    assert len(filtered.json()["data"]) == 1
+    assert filtered.json()["data"][0]["type"] == "Freins"
+
+
+def test_update_and_delete_maintenance_expense(client, db, owner_headers):
+    vid = _create_vehicle(client, owner_headers, "MX-005-CI")
+    created = client.post(
+        f"/api/v1/vehicles/{vid}/maintenance-expenses",
+        json=_expense_payload(),
+        headers=owner_headers,
+    ).json()["data"]
+    eid = created["id"]
+
+    upd = client.put(
+        f"/api/v1/maintenance-expenses/{eid}",
+        json={"cost_fcfa": 60000, "location": "Garage Yopougon"},
+        headers=owner_headers,
+    )
+    assert upd.status_code == 200
+    assert float(upd.json()["data"]["cost_fcfa"]) == 60000
+    assert upd.json()["data"]["location"] == "Garage Yopougon"
+
+    dele = client.delete(
+        f"/api/v1/maintenance-expenses/{eid}", headers=owner_headers
+    )
+    assert dele.status_code == 200
+    remaining = client.get(
+        f"/api/v1/vehicles/{vid}/maintenance-expenses", headers=owner_headers
+    )
+    assert remaining.json()["data"] == []
+
+
+def test_maintenance_expense_owner_isolation(client, db, owner_headers):
+    vid = _create_vehicle(client, owner_headers, "MX-006-CI")
+    expense = client.post(
+        f"/api/v1/vehicles/{vid}/maintenance-expenses",
+        json=_expense_payload(),
+        headers=owner_headers,
+    ).json()["data"]
+
+    other_token = _register_and_verify(client, db, "intruder@maint.ci")
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+
+    # Cannot create on a vehicle they don't own
+    assert (
+        client.post(
+            f"/api/v1/vehicles/{vid}/maintenance-expenses",
+            json=_expense_payload(),
+            headers=other_headers,
+        ).status_code
+        == 404
+    )
+    # Cannot delete someone else's expense
+    assert (
+        client.delete(
+            f"/api/v1/maintenance-expenses/{expense['id']}", headers=other_headers
+        ).status_code
+        == 404
+    )
+    # Their global list is empty
+    assert (
+        client.get(
+            "/api/v1/owner/maintenance-expenses", headers=other_headers
+        ).json()["data"]
+        == []
+    )
+
+
+def test_maintenance_expense_validation(client, db, owner_headers):
+    vid = _create_vehicle(client, owner_headers, "MX-007-CI")
+    # Cost must be > 0
+    assert (
+        client.post(
+            f"/api/v1/vehicles/{vid}/maintenance-expenses",
+            json=_expense_payload(cost_fcfa=0),
+            headers=owner_headers,
+        ).status_code
+        == 422
+    )
+    # Type must be one of the allowed categories
+    assert (
+        client.post(
+            f"/api/v1/vehicles/{vid}/maintenance-expenses",
+            json=_expense_payload(type="Lavage"),
+            headers=owner_headers,
+        ).status_code
+        == 422
+    )

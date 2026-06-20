@@ -1,11 +1,11 @@
 const API = '/api/v1';
 const token = () => localStorage.getItem('access_token');
 
-if (!token()) window.location.href = '/';
+if (!token()) window.location.href = '/login';
 
 function logout() {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 }
 
 function formatPrice(fcfa) {

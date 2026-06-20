@@ -19,12 +19,12 @@ function getRoleFromToken(t) {
 const _dashTok = token();
 if (!_dashTok || !isTokenValid(_dashTok) || getRoleFromToken(_dashTok) !== 'OWNER') {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 }
 
 document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 });
 
 document.getElementById('upgrade-modal-close').addEventListener('click', () => {
@@ -38,7 +38,7 @@ async function loadDashboard() {
     const res = await fetch(`${API}/dashboard/owner`, { headers: authHeader() });
     if (res.status === 401 || res.status === 403) {
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = '/login';
       return;
     }
     const json = await res.json();
@@ -63,7 +63,7 @@ async function loadPlanUsage() {
     const res = await fetch(`${API}/subscription/my-plan`, { headers: authHeader() });
     if (res.status === 401 || res.status === 403) {
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = '/login';
       return;
     }
     if (!res.ok) return;
@@ -76,9 +76,19 @@ async function loadPlanUsage() {
 
 // ── KPI cards ────────────────────────────────────────────────────────────────
 function renderKPIs(data) {
-  const totalSpend = parseFloat(data.financial.total_spend_fcfa) || 0;
-  document.getElementById('kpi-total-spend').textContent =
-    totalSpend.toLocaleString('fr-FR') + ' FCFA';
+  const fin = data.financial;
+  const fcfa = n => (parseFloat(n) || 0).toLocaleString('fr-FR') + ' FCFA';
+
+  document.getElementById('kpi-total-spend').textContent = fcfa(fin.total_spend_fcfa);
+  document.getElementById('kpi-spend-breakdown').textContent =
+    `Carburant ${fcfa(fin.fuel_total_fcfa)} · Maintenance ${fcfa(fin.maintenance_total_fcfa)}`;
+
+  const distance = parseInt(fin.total_distance_km) || 0;
+  const costPerKm = parseFloat(fin.cost_per_km_fcfa) || 0;
+  document.getElementById('kpi-cost-per-km').textContent =
+    distance > 0 ? costPerKm.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + ' FCFA' : '—';
+  document.getElementById('kpi-distance').textContent =
+    distance > 0 ? `sur ${distance.toLocaleString('fr-FR')} km` : 'distance non renseignée';
 
   const activeVehicles = data.consumption.filter(v => v.entry_count >= 0).length;
   document.getElementById('kpi-active-vehicles').textContent = activeVehicles;

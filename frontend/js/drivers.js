@@ -7,11 +7,11 @@ let driverVehicles = new Map();     // driver_id → [{id, name, license_plate}]
 let selectedDriverId = null;
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
-if (!token()) window.location.href = '/';
+if (!token()) window.location.href = '/login';
 
 function logout() {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 }
 
 // ── Alert banner ──────────────────────────────────────────────────────────────

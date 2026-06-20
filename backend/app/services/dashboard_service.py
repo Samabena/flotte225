@@ -4,6 +4,7 @@ from sqlalchemy import func, extract
 from sqlalchemy.orm import Session
 
 from app.models.fuel_entry import FuelEntry
+from app.models.maintenance_expense import MaintenanceExpense
 from app.models.vehicle import Vehicle
 from app.models.vehicle_driver import VehicleDriver
 from app.models.user import User
@@ -31,11 +32,33 @@ def get_dashboard_data(db: Session, owner_id: int) -> DashboardResponse:
 
 
 def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
-    total = (
+    fuel_total = (
         db.query(func.coalesce(func.sum(FuelEntry.amount_fcfa), 0))
         .join(Vehicle, FuelEntry.vehicle_id == Vehicle.id)
         .filter(Vehicle.owner_id == owner_id)
         .scalar()
+    )
+
+    maintenance_total = (
+        db.query(func.coalesce(func.sum(MaintenanceExpense.cost_fcfa), 0))
+        .join(Vehicle, MaintenanceExpense.vehicle_id == Vehicle.id)
+        .filter(Vehicle.owner_id == owner_id)
+        .scalar()
+    )
+
+    grand_total = Decimal(str(fuel_total)) + Decimal(str(maintenance_total))
+
+    total_distance = (
+        db.query(func.coalesce(func.sum(FuelEntry.distance_km), 0))
+        .join(Vehicle, FuelEntry.vehicle_id == Vehicle.id)
+        .filter(Vehicle.owner_id == owner_id)
+        .scalar()
+    ) or 0
+    total_distance = int(total_distance)
+    cost_per_km = (
+        (grand_total / Decimal(total_distance)).quantize(Decimal("0.01"))
+        if total_distance > 0
+        else Decimal("0")
     )
 
     spend_rows = (
@@ -79,7 +102,11 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
     ][-12:]
 
     return FinancialSummary(
-        total_spend_fcfa=Decimal(str(total)),
+        total_spend_fcfa=grand_total,
+        fuel_total_fcfa=Decimal(str(fuel_total)),
+        maintenance_total_fcfa=Decimal(str(maintenance_total)),
+        total_distance_km=total_distance,
+        cost_per_km_fcfa=cost_per_km,
         spend_per_vehicle=spend_per_vehicle,
         monthly_trend=monthly_trend,
     )

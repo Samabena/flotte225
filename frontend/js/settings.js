@@ -15,7 +15,7 @@ function getRoleFromToken(t) {
 
 function logout() {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 }
 
 function showSessionExpired() {

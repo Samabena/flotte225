@@ -180,6 +180,76 @@
           Enregistrer
         </button>
       </div>
+
+      <!-- Journal des dépenses de maintenance -->
+      <div class="card p-6 mt-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <p class="font-semibold text-gray-700">Dépenses de maintenance</p>
+          <span id="exp-total" class="text-sm font-semibold text-[#005F02]"></span>
+        </div>
+
+        <!-- Formulaire d'ajout -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Date</label>
+            <input id="exp-date" type="date" class="input-field" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Type</label>
+            <select id="exp-type" class="input-field">
+              <option>Vidange</option>
+              <option>Pneus</option>
+              <option>Freins</option>
+              <option>Révision</option>
+              <option>Carrosserie</option>
+              <option>Batterie</option>
+              <option>Autre</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Kilométrage</label>
+            <input id="exp-km" type="number" min="0" class="input-field" placeholder="Ex : 45000" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Coût (FCFA)</label>
+            <input id="exp-cost" type="number" min="0" class="input-field" placeholder="Ex : 45000" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Lieu</label>
+            <input id="exp-location" type="text" class="input-field" placeholder="Ex : Garage Adjamé" />
+          </div>
+          <div>
+            <button id="btn-add-expense"
+              class="w-full bg-[#005F02] text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#004a01] transition">
+              Ajouter
+            </button>
+          </div>
+          <div class="sm:col-span-2 lg:col-span-6">
+            <label class="block text-xs text-gray-500 mb-1">Note <span class="text-gray-400">(optionnel)</span></label>
+            <input id="exp-note" type="text" class="input-field" placeholder="Détails…" />
+          </div>
+        </div>
+        <div id="exp-error" class="hidden text-red-600 text-xs mt-3"></div>
+
+        <!-- Tableau des dépenses -->
+        <div class="overflow-x-auto mt-5">
+          <table id="exp-table" class="hidden w-full text-sm">
+            <thead>
+              <tr class="text-left text-gray-500 border-b">
+                <th class="pb-2 font-medium">Date</th>
+                <th class="pb-2 font-medium">Type</th>
+                <th class="pb-2 font-medium">Km</th>
+                <th class="pb-2 font-medium">Lieu</th>
+                <th class="pb-2 font-medium text-right">Coût (FCFA)</th>
+                <th class="pb-2 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="exp-tbody"></tbody>
+          </table>
+        </div>
+        <div id="exp-loading" class="hidden text-center text-gray-400 text-sm py-6">Chargement…</div>
+        <p id="exp-empty" class="hidden text-center text-gray-400 text-sm py-6">Aucune dépense enregistrée pour ce véhicule.</p>
+      </div>
     </div>
 
     <!-- All vehicles overview table -->

@@ -6,6 +6,7 @@ from app.models.vehicle import Vehicle
 from app.models.vehicle_driver import VehicleDriver
 from app.models.user import User
 from app.schemas.vehicle import VehicleCreate, VehicleUpdate
+from app.services import trip_service
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -307,7 +308,13 @@ def get_driver_vehicles(db: Session, driver_id: int) -> list[Vehicle]:
 # ── US-023: Toggle driving status ─────────────────────────────────────────────
 
 
-def activate_driver(db: Session, driver: User, vehicle_id: int) -> User:
+def activate_driver(
+    db: Session,
+    driver: User,
+    vehicle_id: int,
+    start_odometer: int | None = None,
+    client_uuid: str | None = None,
+) -> User:
     # Verify driver is assigned to this vehicle
     assignment = (
         db.query(VehicleDriver)
@@ -330,6 +337,10 @@ def activate_driver(db: Session, driver: User, vehicle_id: int) -> User:
             detail="Ce véhicule n'est pas disponible",
         )
 
+    # Open a trip log when the start odometer is provided (raises on invalid km)
+    if start_odometer is not None:
+        trip_service.start_trip(db, driver, vehicle_id, start_odometer, client_uuid)
+
     driver.driving_status = True
     driver.active_vehicle_id = vehicle_id
     db.commit()
@@ -337,7 +348,11 @@ def activate_driver(db: Session, driver: User, vehicle_id: int) -> User:
     return driver
 
 
-def deactivate_driver(db: Session, driver: User) -> User:
+def deactivate_driver(db: Session, driver: User, end_odometer: int | None = None) -> User:
+    # Close the open trip when the return odometer is provided (raises on invalid km)
+    if end_odometer is not None:
+        trip_service.end_trip(db, driver, end_odometer)
+
     driver.driving_status = False
     driver.active_vehicle_id = None
     db.commit()

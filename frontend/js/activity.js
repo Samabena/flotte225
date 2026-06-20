@@ -11,12 +11,12 @@ let currentVehicleId = '';
 let currentTotal = 0;
 
 if (!token()) {
-  window.location.href = '/';
+  window.location.href = '/login';
 }
 
 document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 });
 
 // ── Populate filter dropdowns ─────────────────────────────────────────────────
@@ -26,7 +26,7 @@ async function loadFilters() {
     const vRes = await fetch(`${API}/vehicles`, { headers: authHeader() });
     if (vRes.status === 401 || vRes.status === 403) {
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = '/login';
       return;
     }
     const vData = await vRes.json();
@@ -42,7 +42,7 @@ async function loadFilters() {
     const dRes = await fetch(`${API}/dashboard/owner`, { headers: authHeader() });
     if (dRes.status === 401 || dRes.status === 403) {
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = '/login';
       return;
     }
     const dData = await dRes.json();
@@ -68,7 +68,7 @@ async function loadLogs(offset = 0) {
     const res = await fetch(`${API}/owner/activity-logs?${params}`, { headers: authHeader() });
     if (res.status === 401 || res.status === 403) {
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = '/login';
       return;
     }
     const json = await res.json();

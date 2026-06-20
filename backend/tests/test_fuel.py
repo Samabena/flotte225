@@ -178,6 +178,32 @@ def test_submit_fuel_entry_success(
     assert data["vehicle_id"] == vehicle_id
 
 
+def test_submit_with_client_uuid_is_idempotent(
+    client, db, owner_headers, driver_token, driver_headers
+):
+    """Re-sending the same client_uuid (offline sync replay) must not duplicate."""
+    veh = _create_vehicle(client, owner_headers, {"license_plate": "FU-IDEM-CI"})
+    vehicle_id = veh.json()["data"]["id"]
+    _setup_active_driver(
+        client, db, owner_headers, driver_token, driver_headers, vehicle_id
+    )
+
+    payload = {
+        **FUEL_PAYLOAD,
+        "vehicle_id": vehicle_id,
+        "client_uuid": "11111111-1111-4111-8111-111111111111",
+    }
+    first = client.post("/api/v1/fuel", json=payload, headers=driver_headers)
+    second = client.post("/api/v1/fuel", json=payload, headers=driver_headers)
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    # Same row returned, and only one entry exists for the driver.
+    assert first.json()["data"]["id"] == second.json()["data"]["id"]
+    listing = client.get("/api/v1/fuel", headers=driver_headers)
+    assert len(listing.json()["data"]) == 1
+
+
 def test_submit_calculates_consumption(
     client, db, owner_headers, driver_token, driver_headers
 ):
@@ -198,9 +224,11 @@ def test_submit_calculates_consumption(
     assert float(data["consumption_per_100km"]) == pytest.approx(9.0, abs=0.01)
 
 
-def test_submit_rejected_when_driver_inactive(
+def test_submit_allowed_when_assigned_without_activation(
     client, db, owner_headers, driver_token, driver_headers
 ):
+    # Driving activation gate was removed (#11): an assigned driver may submit
+    # fuel without first activating a driving session.
     veh = _create_vehicle(client, owner_headers, {"license_plate": "FU-003-CI"})
     vehicle_id = veh.json()["data"]["id"]
     driver_id = _get_driver_id(client, db, driver_token)
@@ -216,13 +244,15 @@ def test_submit_rejected_when_driver_inactive(
         json={**FUEL_PAYLOAD, "vehicle_id": vehicle_id},
         headers=driver_headers,
     )
-    assert res.status_code == 403
+    assert res.status_code == 201
 
 
-def test_submit_rejected_when_wrong_vehicle(
+def test_submit_allowed_for_any_assigned_vehicle(
     client, db, owner_headers, driver_token, driver_headers
 ):
-    # Driver activates on vehicle 1 but tries to submit for vehicle 2
+    # With the activation gate removed (#11), the active vehicle no longer
+    # restricts submissions: a driver may submit for ANY vehicle they are
+    # assigned to, regardless of which one they activated.
     veh1 = _create_vehicle(client, owner_headers, {"license_plate": "FU-010-CI"})
     veh2 = _create_vehicle(client, owner_headers, {"license_plate": "FU-011-CI"})
     vid1 = veh1.json()["data"]["id"]
@@ -248,7 +278,7 @@ def test_submit_rejected_when_wrong_vehicle(
         json={**FUEL_PAYLOAD, "vehicle_id": vid2},
         headers=driver_headers,
     )
-    assert res.status_code == 403
+    assert res.status_code == 201
 
 
 def test_submit_rejected_when_not_assigned(client, db, owner_headers, driver_headers):
