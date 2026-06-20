@@ -201,4 +201,63 @@
     pendingCount: async () => (await allRecords()).length,
     onSync: (fn) => listeners.push(fn),
   };
+
+  // ── "Install this app" prompt (Add to Home Screen) ───────────────────────────
+  const DISMISS_KEY = 'flotte225-install-dismissed';
+  const isStandalone = () =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+
+  function showInstallBanner(onInstall, iosHint) {
+    if (localStorage.getItem(DISMISS_KEY) === '1' || isStandalone()) return;
+    const bar = document.createElement('div');
+    bar.style.cssText =
+      'position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);z-index:9998;' +
+      'width:min(92%,26rem);background:#fff;border:1px solid #e6e6e6;border-radius:.9rem;' +
+      'box-shadow:0 8px 28px rgba(0,0,0,.18);padding:.85rem 1rem;font-family:Inter,system-ui,sans-serif;';
+    bar.innerHTML =
+      '<div style="display:flex;align-items:center;gap:.75rem;">' +
+        '<div style="font-size:1.5rem;">📲</div>' +
+        '<div style="flex:1;font-size:.85rem;color:#1f2937;">' +
+          '<strong style="color:#005F02;">Installer Flotte225</strong><br>' +
+          (iosHint
+            ? 'Appuyez sur <strong>Partager</strong> puis « Sur l\'écran d\'accueil ».'
+            : 'Ajoutez l\'app à votre écran d\'accueil pour un accès rapide.') +
+        '</div>' +
+      '</div>' +
+      (iosHint ? '' :
+        '<div style="display:flex;gap:.5rem;margin-top:.7rem;justify-content:flex-end;">' +
+          '<button id="fl-inst-no" style="background:none;border:none;color:#6b7280;font-size:.8rem;font-weight:600;cursor:pointer;">Plus tard</button>' +
+          '<button id="fl-inst-yes" style="background:#005F02;color:#fff;border:none;border-radius:.5rem;padding:.45rem .9rem;font-size:.8rem;font-weight:700;cursor:pointer;">Installer</button>' +
+        '</div>') +
+      (iosHint ? '<button id="fl-inst-no" style="position:absolute;top:.4rem;right:.6rem;background:none;border:none;color:#9ca3af;font-size:1.1rem;cursor:pointer;">×</button>' : '');
+    bar.style.position = 'fixed';
+    document.body.appendChild(bar);
+
+    const close = () => { localStorage.setItem(DISMISS_KEY, '1'); bar.remove(); };
+    const no = bar.querySelector('#fl-inst-no');
+    if (no) no.addEventListener('click', close);
+    const yes = bar.querySelector('#fl-inst-yes');
+    if (yes) yes.addEventListener('click', async () => { bar.remove(); await onInstall(); });
+  }
+
+  // Android / Chromium: capture the native prompt and offer our own button.
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallBanner(async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      localStorage.setItem(DISMISS_KEY, '1');
+    }, false);
+  });
+
+  // iOS Safari: no beforeinstallprompt — show manual instructions instead.
+  const isIOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  if (isIOS && !isStandalone()) {
+    window.addEventListener('load', () => setTimeout(() => showInstallBanner(() => {}, true), 1500));
+  }
 })();
