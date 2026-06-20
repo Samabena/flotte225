@@ -19,12 +19,12 @@ function getRoleFromToken(t) {
 const _dashTok = token();
 if (!_dashTok || !isTokenValid(_dashTok) || getRoleFromToken(_dashTok) !== 'OWNER') {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 }
 
 document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 });
 
 document.getElementById('upgrade-modal-close').addEventListener('click', () => {
@@ -38,7 +38,7 @@ async function loadDashboard() {
     const res = await fetch(`${API}/dashboard/owner`, { headers: authHeader() });
     if (res.status === 401 || res.status === 403) {
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = '/login';
       return;
     }
     const json = await res.json();
@@ -63,7 +63,7 @@ async function loadPlanUsage() {
     const res = await fetch(`${API}/subscription/my-plan`, { headers: authHeader() });
     if (res.status === 401 || res.status === 403) {
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = '/login';
       return;
     }
     if (!res.ok) return;

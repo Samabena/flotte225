@@ -4,11 +4,11 @@ const API = '/api/v1';
 const token = () => localStorage.getItem('access_token');
 const authHeader = () => ({ 'Authorization': `Bearer ${token()}` });
 
-if (!token()) window.location.href = '/';
+if (!token()) window.location.href = '/login';
 
 document.getElementById('btn-logout').addEventListener('click', () => {
   localStorage.clear();
-  window.location.href = '/';
+  window.location.href = '/login';
 });
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ async function loadPlan() {
     const res = await fetch(`${API}/subscription/my-plan`, { headers: authHeader() });
     if (res.status === 401 || res.status === 403) {
       localStorage.clear();
-      window.location.href = '/';
+      window.location.href = '/login';
       return;
     }
     const data = res.ok ? await res.json() : {};
