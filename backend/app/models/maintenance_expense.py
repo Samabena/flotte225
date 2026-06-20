@@ -23,6 +23,10 @@ class MaintenanceExpense(Base):
     cost_fcfa: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Client-generated UUID for idempotent offline sync (PWA)
+    client_uuid: Mapped[str | None] = mapped_column(
+        String(36), unique=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

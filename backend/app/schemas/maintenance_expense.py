@@ -21,6 +21,7 @@ class MaintenanceExpenseCreate(BaseModel):
     cost_fcfa: float
     location: str | None = None
     note: str | None = None
+    client_uuid: str | None = None  # idempotency key for offline sync
 
     @field_validator("cost_fcfa")
     @classmethod
@@ -62,6 +63,7 @@ class MaintenanceExpenseResponse(BaseModel):
     cost_fcfa: float
     location: str | None
     note: str | None
+    client_uuid: str | None
     created_at: dt.datetime
 
     model_config = {"from_attributes": True}

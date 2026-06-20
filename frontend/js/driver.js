@@ -215,30 +215,37 @@ document.getElementById('btn-add-expense')?.addEventListener('click', async () =
   if (km) body.odometer_km = parseInt(km);
   if (location) body.location = location;
 
+  const clearForm = () => {
+    document.getElementById('me-km').value = '';
+    document.getElementById('me-cost').value = '';
+    document.getElementById('me-location').value = '';
+  };
+
   const btn = document.getElementById('btn-add-expense');
   btn.disabled = true;
-  try {
-    const res = await fetch(`${API}/driver/vehicles/${vehicleId}/maintenance-expenses`, {
-      method: 'POST',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (res.ok) {
-      okEl.textContent = 'Dépense enregistrée. Votre responsable la verra dans le tableau de bord.';
-      okEl.classList.remove('hidden');
-      document.getElementById('me-km').value = '';
-      document.getElementById('me-cost').value = '';
-      document.getElementById('me-location').value = '';
-      setTimeout(() => okEl.classList.add('hidden'), 5000);
-    } else {
-      const detail = json.detail;
-      fail(Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : (detail || "Erreur lors de l'enregistrement."));
-    }
-  } catch {
-    fail('Pas de réseau. Vérifiez votre connexion et réessayez.');
-  }
+
+  // Offline-first: send now, or queue locally and sync on reconnect (idempotent).
+  const result = await Flotte.queueOrSend({
+    type: 'expense',
+    url: `${API}/driver/vehicles/${vehicleId}/maintenance-expenses`,
+    body,
+  });
+
   btn.disabled = false;
+  if (result.ok && result.queued) {
+    okEl.textContent = 'Pas de réseau — dépense enregistrée et sera synchronisée automatiquement.';
+    okEl.classList.remove('hidden');
+    clearForm();
+    setTimeout(() => okEl.classList.add('hidden'), 6000);
+  } else if (result.ok) {
+    okEl.textContent = 'Dépense enregistrée. Votre responsable la verra dans le tableau de bord.';
+    okEl.classList.remove('hidden');
+    clearForm();
+    setTimeout(() => okEl.classList.add('hidden'), 5000);
+  } else {
+    const detail = result.json && result.json.detail;
+    fail(Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : (detail || "Erreur lors de l'enregistrement."));
+  }
 });
 
 // ── Recent fuel entries (last 5 preview) ─────────────────────────────────────

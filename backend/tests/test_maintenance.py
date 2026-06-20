@@ -728,3 +728,27 @@ def test_driver_cannot_log_expense_for_unassigned_vehicle(
         headers=driver_headers,
     )
     assert res.status_code == 403
+
+
+def test_driver_expense_client_uuid_is_idempotent(
+    client, db, owner_headers, driver_token, driver_headers
+):
+    """Re-sent offline expense (same client_uuid) must not duplicate."""
+    vid = _create_vehicle(client, owner_headers, "MX-DRV3-CI")
+    driver_id = _get_driver_id(driver_token)
+    client.post(
+        f"/api/v1/vehicles/{vid}/drivers",
+        json={"driver_id": driver_id},
+        headers=owner_headers,
+    )
+    payload = _expense_payload(client_uuid="22222222-2222-4222-8222-222222222222")
+    url = f"/api/v1/driver/vehicles/{vid}/maintenance-expenses"
+    first = client.post(url, json=payload, headers=driver_headers)
+    second = client.post(url, json=payload, headers=driver_headers)
+
+    assert first.status_code == 200 and second.status_code == 200
+    assert first.json()["data"]["id"] == second.json()["data"]["id"]
+    owner_list = client.get(
+        "/api/v1/owner/maintenance-expenses", headers=owner_headers
+    )
+    assert len(owner_list.json()["data"]) == 1

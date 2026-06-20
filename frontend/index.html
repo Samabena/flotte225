@@ -3,6 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Already logged in? Skip the marketing page and go straight to the dashboard. -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('access_token');
+        if (!t) return;
+        var p = JSON.parse(atob(t.split('.')[1]));
+        if (!p.exp || p.exp * 1000 <= Date.now()) { localStorage.clear(); return; }
+        var dest = p.role === 'SUPER_ADMIN' ? '/dashboard-admin'
+                 : p.role === 'DRIVER' ? '/dashboard-driver'
+                 : '/dashboard-owner';
+        location.replace(dest);
+      } catch (e) { /* invalid token → show landing */ }
+    })();
+  </script>
+
   <title>Flotte225 — Gérez votre flotte automobile en toute simplicité</title>
   <meta name="description" content="Flotte225 : la solution de gestion de flotte. Suivez vos coûts carburant, vos échéances d'assurance et de contrôle technique, vos chauffeurs et recevez des rapports intelligents par e-mail et WhatsApp." />
 
