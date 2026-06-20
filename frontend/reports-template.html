@@ -5,54 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rapports — Flotte225</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            green: { DEFAULT: '#005F02', light: '#e6f0e6' },
-            gold: { DEFAULT: '#C0B87A', light: '#f7f4e8' },
-            cream: '#F2E3BB',
-          }
-        }
-      }
-    }
-  </script>
+  <script src="/js/theme.js"></script>
+  <link rel="stylesheet" href="/css/app.css" />
   <style>
-    body { background-color: #F2E3BB; font-family: 'Inter', system-ui, sans-serif; }
-    .sidebar { background: #005F02; }
-    .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .btn-primary { background: #005F02; color: #fff; border-radius: 0.5rem; padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600; transition: background .15s; }
+        .btn-primary { background: #005F02; color: #fff; border-radius: 0.5rem; padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600; transition: background .15s; }
     .btn-primary:hover:not(:disabled) { background: #004801; }
     .btn-primary:disabled { opacity: .45; cursor: not-allowed; }
     .btn-secondary { background: #fff; color: #374151; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 600; transition: all .15s; }
     .btn-secondary:hover { background: #f9fafb; border-color: #9ca3af; }
-    .input-field { border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; transition: box-shadow .15s; }
-    .input-field:focus { box-shadow: 0 0 0 2px rgba(0,95,2,.25); border-color: #005F02; }
-    .tab-btn { border-bottom: 2px solid transparent; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: #6b7280; }
-    .tab-btn.active { border-color: #005F02; color: #005F02; font-weight: 600; }
     .preset-chip { border: 1px solid #d1d5db; border-radius: 999px; padding: 0.25rem 0.75rem; font-size: 0.8rem; cursor: pointer; background: #fff; transition: all .15s; }
     .preset-chip:hover { border-color: #005F02; color: #005F02; }
     .preset-chip.active { background: #005F02; color: #fff; border-color: #005F02; }
-      #sidebar { transition: width 0.25s ease; overflow: hidden; }
-    #sidebar.collapsed { width: 3.5rem; padding-left: 0.625rem; padding-right: 0.625rem; }
-    #sidebar.collapsed .sidebar-label { display: none; }
-    #sidebar.collapsed .sidebar-logo { justify-content: center; }
-    #sidebar.collapsed nav a, #sidebar.collapsed nav button,
-    #sidebar.collapsed .sidebar-action-btn { justify-content: center; }
-    #sidebar.collapsed .sidebar-bottom-btn { justify-content: center; }
-    #sidebar-toggle svg { transition: transform 0.25s ease; }
-    #sidebar.collapsed #sidebar-toggle svg { transform: rotate(180deg); }
-    /* Mobile sidebar */
-    #sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 30; }
-    #sidebar-backdrop.show { display: block; }
-    #mobile-topbar { display: none; }
-    @media (max-width: 639px) {
-      #sidebar { position: fixed !important; top: 0; left: 0; z-index: 40; height: 100% !important; width: 14rem !important; transform: translateX(-100%) !important; transition: transform 0.25s ease !important; }
-      #sidebar.mobile-open { transform: translateX(0) !important; }
-      #mobile-topbar { display: flex !important; }
-      main { padding-top: 3.5rem; }
-    }
   </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -203,9 +166,7 @@
     </div>
   </main>
 
-    <script>
-  (function(){var s=document.getElementById('sidebar'),t=document.getElementById('sidebar-toggle'),mb=document.getElementById('mobile-menu-btn'),bd=document.getElementById('sidebar-backdrop');if(!s||!t)return;if(localStorage.getItem('flotte225-sidebar-collapsed')==='true')s.classList.add('collapsed');t.addEventListener('click',function(){s.classList.toggle('collapsed');localStorage.setItem('flotte225-sidebar-collapsed',s.classList.contains('collapsed'));});if(mb&&bd){mb.addEventListener('click',function(){s.classList.add('mobile-open');bd.classList.add('show');});bd.addEventListener('click',function(){s.classList.remove('mobile-open');bd.classList.remove('show');});}})();
-  </script>
+    <script src="/js/shell.js"></script>
   <script src="js/reports-template.js"></script>
 </body>
 </html>
