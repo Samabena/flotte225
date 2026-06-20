@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Flotte225 — Gérez votre flotte automobile en toute simplicité</title>
-  <meta name="description" content="Flotte225 : la solution de gestion de flotte pensée pour la Côte d'Ivoire. Suivez vos coûts carburant, vos échéances d'assurance et de contrôle technique, vos chauffeurs et recevez des rapports intelligents par e-mail et WhatsApp." />
+  <meta name="description" content="Flotte225 : la solution de gestion de flotte. Suivez vos coûts carburant, vos échéances d'assurance et de contrôle technique, vos chauffeurs et recevez des rapports intelligents par e-mail et WhatsApp." />
 
   <!-- Open Graph / partage social -->
-  <meta property="og:title" content="Flotte225 — Gestion de flotte pour la Côte d'Ivoire" />
+  <meta property="og:title" content="Flotte225 — Logiciel de gestion de flotte" />
   <meta property="og:description" content="Maîtrisez vos coûts carburant, vos échéances et vos chauffeurs. Rapports IA, alertes WhatsApp, export PDF/Excel." />
   <meta property="og:type" content="website" />
 
@@ -76,7 +76,7 @@
     <div class="max-w-6xl mx-auto px-5 pt-16 pb-20 grid md:grid-cols-2 gap-12 items-center">
       <div>
         <span class="inline-flex items-center gap-2 bg-green-light text-green text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
-          🇨🇮 Pensé pour la Côte d'Ivoire
+          🚚 Toute votre flotte, en un seul endroit
         </span>
         <h1 class="text-4xl md:text-5xl font-extrabold leading-tight text-gray-900">
           Maîtrisez votre flotte,<br>
@@ -88,10 +88,10 @@
           envoyés par e-mail et WhatsApp.
         </p>
         <div class="mt-8 flex flex-wrap gap-4">
-          <a href="login#register" class="px-6 py-3 rounded-xl btn-primary font-semibold text-base">Commencer gratuitement</a>
-          <a href="#fonctionnalites" class="px-6 py-3 rounded-xl btn-ghost font-semibold text-base">Voir les fonctionnalités</a>
+          <a href="login#register" class="px-6 py-3 rounded-xl btn-primary font-semibold text-base">Créer un compte</a>
+          <a href="#tarifs" class="px-6 py-3 rounded-xl btn-ghost font-semibold text-base">Voir les tarifs</a>
         </div>
-        <p class="mt-4 text-sm text-gray-500">Offre Starter gratuite · Aucune carte bancaire requise</p>
+        <p class="mt-4 text-sm text-gray-500">Forfaits adaptés à la taille de votre flotte · Sans engagement</p>
       </div>
 
       <!-- Aperçu visuel (mock dashboard) -->
@@ -282,55 +282,119 @@
   <section id="tarifs" class="max-w-6xl mx-auto px-5 py-20">
     <div class="text-center max-w-2xl mx-auto mb-14">
       <h2 class="text-3xl font-bold text-gray-900">Des tarifs simples, en FCFA</h2>
-      <p class="mt-3 text-gray-600">Commencez gratuitement. Évoluez quand votre flotte grandit.</p>
+      <p class="mt-3 text-gray-600">Choisissez le forfait adapté à la taille de votre flotte. Sans engagement.</p>
     </div>
 
-    <div class="grid md:grid-cols-3 gap-6 items-stretch">
-      <!-- Starter -->
-      <div class="price-card p-7 flex flex-col">
-        <h3 class="text-lg font-bold text-gray-900">Starter</h3>
-        <p class="text-sm text-gray-500 mb-4">Pour démarrer</p>
-        <div class="mb-5"><span class="text-3xl font-extrabold text-gray-900">Gratuit</span></div>
-        <ul class="space-y-2 text-sm text-gray-600 flex-1">
-          <li>✅ Suivi carburant & consommation</li>
-          <li>✅ Alertes essentielles</li>
-          <li>✅ Tableau de bord</li>
-          <li>✅ 1 utilisateur</li>
+    <!-- Cartes de forfaits -->
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
+      <!-- Essentiel -->
+      <div class="price-card p-6 flex flex-col">
+        <h3 class="text-lg font-bold text-gray-900">Essentiel</h3>
+        <p class="text-sm text-gray-500 mb-4">Jusqu'à 10 véhicules</p>
+        <div class="mb-1"><span class="text-3xl font-extrabold text-gray-900">50 000</span><span class="text-sm font-medium text-gray-500"> FCFA</span></div>
+        <p class="text-xs text-gray-400 mb-5">par mois</p>
+        <ul class="space-y-1.5 text-sm text-gray-600 flex-1">
+          <li>Jusqu'à 10 véhicules</li>
+          <li>Jusqu'à 20 chauffeurs</li>
+          <li>Toutes les fonctions de base</li>
+          <li>Support sous 24h</li>
         </ul>
-        <a href="login#register" class="mt-6 text-center px-5 py-3 rounded-xl btn-ghost font-semibold">Créer un compte</a>
+        <a href="login#register" class="mt-6 text-center px-5 py-2.5 rounded-xl btn-ghost font-semibold">Choisir ce plan</a>
       </div>
 
-      <!-- Pro -->
-      <div class="price-card popular p-7 flex flex-col relative">
-        <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-green text-white text-xs font-bold px-3 py-1 rounded-full">Le plus populaire</span>
-        <h3 class="text-lg font-bold text-gray-900">Pro</h3>
-        <p class="text-sm text-gray-500 mb-4">Pour les flottes actives</p>
-        <div class="mb-5"><span class="text-3xl font-extrabold text-gray-900">9 900</span><span class="text-sm font-medium text-gray-500"> FCFA / mois</span></div>
-        <ul class="space-y-2 text-sm text-gray-600 flex-1">
-          <li>✅ Tout Starter, plus :</li>
-          <li>✅ Rapports IA programmés</li>
-          <li>✅ Alertes WhatsApp</li>
-          <li>✅ Export PDF & Excel</li>
-          <li>✅ Gestion des chauffeurs</li>
+      <!-- Performance (recommandé) -->
+      <div class="price-card popular p-6 flex flex-col relative">
+        <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-gray-900 text-xs font-bold px-3 py-1 rounded-full">Recommandé</span>
+        <h3 class="text-lg font-bold text-gray-900">Performance</h3>
+        <p class="text-sm text-gray-500 mb-4">Jusqu'à 30 véhicules</p>
+        <div class="mb-1"><span class="text-3xl font-extrabold text-gray-900">150 000</span><span class="text-sm font-medium text-gray-500"> FCFA</span></div>
+        <p class="text-xs text-gray-400 mb-5">par mois</p>
+        <ul class="space-y-1.5 text-sm text-gray-600 flex-1">
+          <li>Jusqu'à 30 véhicules</li>
+          <li>Jusqu'à 60 chauffeurs</li>
+          <li>Rapports IA & WhatsApp inclus</li>
+          <li>Support sous 12h</li>
         </ul>
-        <a href="login#register" class="mt-6 text-center px-5 py-3 rounded-xl btn-primary font-semibold">Choisir Pro</a>
+        <a href="login#register" class="mt-6 text-center px-5 py-2.5 rounded-xl btn-primary font-semibold">Choisir ce plan</a>
       </div>
 
-      <!-- Business -->
-      <div class="price-card p-7 flex flex-col">
-        <h3 class="text-lg font-bold text-gray-900">Business</h3>
-        <p class="text-sm text-gray-500 mb-4">Pour les grandes flottes</p>
-        <div class="mb-5"><span class="text-3xl font-extrabold text-gray-900">24 900</span><span class="text-sm font-medium text-gray-500"> FCFA / mois</span></div>
-        <ul class="space-y-2 text-sm text-gray-600 flex-1">
-          <li>✅ Tout Pro, plus :</li>
-          <li>✅ Véhicules & chauffeurs illimités</li>
-          <li>✅ Rapports avancés</li>
-          <li>✅ Support prioritaire</li>
+      <!-- Croissance -->
+      <div class="price-card p-6 flex flex-col">
+        <h3 class="text-lg font-bold text-gray-900">Croissance</h3>
+        <p class="text-sm text-gray-500 mb-4">Jusqu'à 50 véhicules</p>
+        <div class="mb-1"><span class="text-3xl font-extrabold text-gray-900">200 000</span><span class="text-sm font-medium text-gray-500"> FCFA</span></div>
+        <p class="text-xs text-gray-400 mb-5">par mois</p>
+        <ul class="space-y-1.5 text-sm text-gray-600 flex-1">
+          <li>Jusqu'à 50 véhicules</li>
+          <li>Jusqu'à 100 chauffeurs</li>
+          <li>Toutes les fonctions premium</li>
+          <li>Support prioritaire sous 1h</li>
         </ul>
-        <a href="login#register" class="mt-6 text-center px-5 py-3 rounded-xl btn-ghost font-semibold">Choisir Business</a>
+        <a href="login#register" class="mt-6 text-center px-5 py-2.5 rounded-xl btn-ghost font-semibold">Choisir ce plan</a>
+      </div>
+
+      <!-- Élite -->
+      <div class="price-card p-6 flex flex-col">
+        <h3 class="text-lg font-bold text-gray-900">Élite</h3>
+        <p class="text-sm text-gray-500 mb-4">Jusqu'à 100 véhicules</p>
+        <div class="mb-1"><span class="text-3xl font-extrabold text-gray-900">400 000</span><span class="text-sm font-medium text-gray-500"> FCFA</span></div>
+        <p class="text-xs text-gray-400 mb-5">par mois</p>
+        <ul class="space-y-1.5 text-sm text-gray-600 flex-1">
+          <li>Jusqu'à 100 véhicules</li>
+          <li>Jusqu'à 200 chauffeurs</li>
+          <li>Toutes les fonctions premium</li>
+          <li>Support prioritaire sous 1h</li>
+        </ul>
+        <a href="login#register" class="mt-6 text-center px-5 py-2.5 rounded-xl btn-ghost font-semibold">Choisir ce plan</a>
       </div>
     </div>
-    <p class="text-center text-xs text-gray-400 mt-6">Les tarifs sont indicatifs et peuvent évoluer. L'attribution des offres est gérée par votre administrateur.</p>
+
+    <!-- Tableau comparatif des fonctionnalités -->
+    <div class="mt-16 overflow-x-auto">
+      <table class="w-full min-w-[760px] border-collapse text-sm">
+        <thead>
+          <tr class="border-b-2 border-gray-200">
+            <th class="text-left py-4 px-3 font-bold text-gray-900 w-2/5">Fonctionnalités</th>
+            <th class="py-4 px-3 font-bold text-green text-center">Essentiel</th>
+            <th class="py-4 px-3 font-bold text-green text-center">Performance</th>
+            <th class="py-4 px-3 font-bold text-green text-center">Croissance</th>
+            <th class="py-4 px-3 font-bold text-green text-center">Élite</th>
+          </tr>
+        </thead>
+        <tbody class="[&_td]:py-3 [&_td]:px-3 [&_td]:border-b [&_td]:border-gray-100 [&_td:not(:first-child)]:text-center">
+
+          <tr class="bg-cream/40"><td colspan="5" class="font-semibold text-green">Gestion de flotte</td></tr>
+          <tr><td class="text-gray-700">Nombre de véhicules</td><td>Jusqu'à 10</td><td>Jusqu'à 30</td><td>Jusqu'à 50</td><td>Jusqu'à 100</td></tr>
+          <tr><td class="text-gray-700">Nombre de chauffeurs</td><td>Jusqu'à 20</td><td>Jusqu'à 60</td><td>Jusqu'à 100</td><td>Jusqu'à 200</td></tr>
+          <tr><td class="text-gray-700">Accès chauffeurs (identifiants dédiés)</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Archivage des véhicules (historique conservé)</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+
+          <tr class="bg-cream/40"><td colspan="5" class="font-semibold text-green">Suivi carburant & trajets</td></tr>
+          <tr><td class="text-gray-700">Saisie des pleins de carburant</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Consommation automatique (L/100 km)</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Relevé kilométrique début / fin d'utilisation</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Itinéraire & distance GPS sur les trajets</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+
+          <tr class="bg-cream/40"><td colspan="5" class="font-semibold text-green">Maintenance & alertes</td></tr>
+          <tr><td class="text-gray-700">Suivi assurance & contrôle technique</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Alertes d'échéance & de vidange</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Détection surconsommation & pic de coût</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Alertes par e-mail</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Alertes WhatsApp</td><td>❌</td><td>✅</td><td>✅</td><td>✅</td></tr>
+
+          <tr class="bg-cream/40"><td colspan="5" class="font-semibold text-green">Pilotage & reporting</td></tr>
+          <tr><td class="text-gray-700">Tableau de bord (dépenses, conso, alertes)</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Suivi des dépenses & coût par véhicule</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Rapport IA automatisé (hebdo / mensuel)</td><td>❌</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td class="text-gray-700">Export PDF & Excel</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+
+          <tr class="bg-cream/40"><td colspan="5" class="font-semibold text-green">Support</td></tr>
+          <tr><td class="text-gray-700">Support prioritaire (délai de réponse)</td><td>24h</td><td>12h</td><td>1h</td><td>1h</td></tr>
+
+        </tbody>
+      </table>
+    </div>
+    <p class="text-center text-xs text-gray-400 mt-6">Tarifs indicatifs en FCFA (XOF), hors taxes. L'attribution des forfaits est gérée par votre administrateur Flotte225.</p>
   </section>
 
   <!-- ─────────────────────── FAQ ─────────────────────── -->
@@ -347,8 +411,8 @@
           <p class="mt-3 text-sm text-gray-600">Non. Vous créez un accès pour chaque chauffeur avec un simple nom d'utilisateur et un mot de passe.</p>
         </details>
         <details class="bg-white rounded-xl border border-gray-100 p-5">
-          <summary class="flex items-center justify-between font-semibold text-gray-900">Puis-je commencer gratuitement ? <span class="faq-chevron text-green">▾</span></summary>
-          <p class="mt-3 text-sm text-gray-600">Oui. L'offre Starter est gratuite et sans carte bancaire. Vous passez à une offre supérieure quand vous en avez besoin.</p>
+          <summary class="flex items-center justify-between font-semibold text-gray-900">Comment choisir mon forfait ? <span class="faq-chevron text-green">▾</span></summary>
+          <p class="mt-3 text-sm text-gray-600">Choisissez selon la taille de votre flotte : Essentiel (jusqu'à 10 véhicules) à Élite (jusqu'à 100). Vous pouvez changer de forfait à tout moment lorsque votre flotte grandit, sans engagement.</p>
         </details>
         <details class="bg-white rounded-xl border border-gray-100 p-5">
           <summary class="flex items-center justify-between font-semibold text-gray-900">Comment fonctionnent les alertes ? <span class="faq-chevron text-green">▾</span></summary>
@@ -367,7 +431,7 @@
     <div class="bg-green rounded-3xl text-center text-white px-6 py-14">
       <h2 class="text-3xl font-bold mb-3">Prêt à reprendre le contrôle de votre flotte ?</h2>
       <p class="text-white/85 max-w-xl mx-auto mb-8">Rejoignez les gestionnaires qui économisent du temps et de l'argent avec Flotte225.</p>
-      <a href="login#register" class="inline-block px-8 py-4 rounded-xl btn-gold font-bold text-base">Créer mon compte gratuit</a>
+      <a href="login#register" class="inline-block px-8 py-4 rounded-xl btn-gold font-bold text-base">Créer mon compte</a>
     </div>
   </section>
 
@@ -376,7 +440,7 @@
     <div class="max-w-6xl mx-auto px-5 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
       <div>
         <div class="text-xl font-bold text-green">Flotte<span class="text-gold">225</span></div>
-        <p class="text-sm text-gray-500">Gestion de flotte pour la Côte d'Ivoire.</p>
+        <p class="text-sm text-gray-500">Logiciel de gestion de flotte.</p>
       </div>
       <div class="flex gap-6 text-sm text-gray-500">
         <a href="#fonctionnalites" class="hover:text-green">Fonctionnalités</a>
