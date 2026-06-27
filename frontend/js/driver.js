@@ -96,11 +96,9 @@ function populateSelect(vehicles) {
   const sel = document.getElementById('vehicle-select');
   if (sel) sel.innerHTML = opts;
 
-  // Same vehicle list feeds the maintenance-expense and revenue forms
+  // Same vehicle list feeds the maintenance-expense form
   const meSel = document.getElementById('me-vehicle');
   if (meSel) meSel.innerHTML = opts;
-  const revSel = document.getElementById('rev-vehicle');
-  if (revSel) revSel.innerHTML = opts;
 }
 
 // ── Status UI (badge and card hidden from UI — state managed internally) ──────
@@ -225,6 +223,18 @@ document.getElementById('btn-deactivate').addEventListener('click', async () => 
   if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
 })();
 
+// Show the free-text input only when "Autre" is selected, so the driver can type
+// a custom expense type that isn't in the suggestion list.
+function toggleMeTypeOther() {
+  const other = document.getElementById('me-type-other');
+  if (!other) return;
+  const isOther = document.getElementById('me-type').value === 'Autre';
+  other.classList.toggle('hidden', !isOther);
+  if (isOther) other.focus();
+  else other.value = '';
+}
+document.getElementById('me-type')?.addEventListener('change', toggleMeTypeOther);
+
 document.getElementById('btn-add-expense')?.addEventListener('click', async () => {
   const errEl = document.getElementById('me-error');
   const okEl  = document.getElementById('me-success');
@@ -233,7 +243,10 @@ document.getElementById('btn-add-expense')?.addEventListener('click', async () =
 
   const vehicleId = document.getElementById('me-vehicle').value;
   const date      = document.getElementById('me-date').value;
-  const type      = document.getElementById('me-type').value;
+  const typeSel   = document.getElementById('me-type').value;
+  const type      = typeSel === 'Autre'
+    ? document.getElementById('me-type-other').value.trim()
+    : typeSel;
   const km        = document.getElementById('me-km').value;
   const cost      = document.getElementById('me-cost').value;
   const location  = document.getElementById('me-location').value.trim();
@@ -241,6 +254,7 @@ document.getElementById('btn-add-expense')?.addEventListener('click', async () =
   const fail = (m) => { errEl.textContent = m; errEl.classList.remove('hidden'); };
   if (!vehicleId) return fail('Veuillez sélectionner un véhicule.');
   if (!date)      return fail('Veuillez indiquer la date.');
+  if (!type)      return fail('Veuillez préciser le type.');
   if (cost === '' || parseFloat(cost) <= 0) return fail('Le coût doit être supérieur à 0.');
 
   const body = { date, type, cost_fcfa: parseFloat(cost) };
@@ -251,6 +265,8 @@ document.getElementById('btn-add-expense')?.addEventListener('click', async () =
     document.getElementById('me-km').value = '';
     document.getElementById('me-cost').value = '';
     document.getElementById('me-location').value = '';
+    document.getElementById('me-type').value = 'Vidange';
+    toggleMeTypeOther();
   };
 
   const btn = document.getElementById('btn-add-expense');
@@ -273,58 +289,6 @@ document.getElementById('btn-add-expense')?.addEventListener('click', async () =
     okEl.textContent = 'Dépense enregistrée. Votre responsable la verra dans le tableau de bord.';
     okEl.classList.remove('hidden');
     clearForm();
-    setTimeout(() => okEl.classList.add('hidden'), 5000);
-  } else {
-    const detail = result.json && result.json.detail;
-    fail(Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : (detail || "Erreur lors de l'enregistrement."));
-  }
-});
-
-// ── Revenue (logged by the driver, for an assigned vehicle) ───────────────────
-(function initRevenueDate() {
-  const d = document.getElementById('rev-date');
-  if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
-})();
-
-document.getElementById('btn-add-revenue')?.addEventListener('click', async () => {
-  const errEl = document.getElementById('rev-error');
-  const okEl  = document.getElementById('rev-success');
-  errEl.classList.add('hidden');
-  okEl.classList.add('hidden');
-
-  const vehicleId = document.getElementById('rev-vehicle').value;
-  const date      = document.getElementById('rev-date').value;
-  const amount    = document.getElementById('rev-amount').value;
-  const note      = document.getElementById('rev-note').value.trim();
-
-  const fail = (m) => { errEl.textContent = m; errEl.classList.remove('hidden'); };
-  if (!vehicleId) return fail('Veuillez sélectionner un véhicule.');
-  if (!date) return fail('Veuillez indiquer la date.');
-  if (amount === '' || parseFloat(amount) <= 0) return fail('Le montant doit être supérieur à 0.');
-
-  const body = { date, amount_fcfa: parseFloat(amount) };
-  if (note) body.note = note;
-
-  const btn = document.getElementById('btn-add-revenue');
-  btn.disabled = true;
-  const result = await Flotte.queueOrSend({
-    type: 'revenue',
-    url: `${API}/driver/vehicles/${vehicleId}/revenues`,
-    body,
-  });
-  btn.disabled = false;
-
-  const clear = () => {
-    document.getElementById('rev-amount').value = '';
-    document.getElementById('rev-note').value = '';
-  };
-  if (result.ok && result.queued) {
-    okEl.textContent = 'Pas de réseau — recette enregistrée et sera synchronisée automatiquement.';
-    okEl.classList.remove('hidden'); clear();
-    setTimeout(() => okEl.classList.add('hidden'), 6000);
-  } else if (result.ok) {
-    okEl.textContent = 'Recette enregistrée. Votre responsable la verra dans le tableau de bord.';
-    okEl.classList.remove('hidden'); clear();
     setTimeout(() => okEl.classList.add('hidden'), 5000);
   } else {
     const detail = result.json && result.json.detail;

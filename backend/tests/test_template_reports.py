@@ -115,6 +115,19 @@ def _add_fuel(
     return entry
 
 
+# ── Security: report HTML must escape user-supplied fields ────────────────────
+
+
+def test_report_env_autoescapes_user_fields():
+    """Guards against HTML injection / SSRF in the WeasyPrint-rendered PDFs:
+    expense type, location and names are user-controlled and must be escaped."""
+    from app.services import template_report_service as t
+
+    rendered = t._env.from_string("{{ x }}").render(x='<img src="http://evil/x">')
+    assert "<img" not in rendered
+    assert "&lt;img" in rendered
+
+
 # ── Fleet template report ─────────────────────────────────────────────────────
 
 
@@ -146,6 +159,76 @@ class TestFleetTemplateReport:
         assert res.headers["content-type"] == "application/pdf"
         assert "rapport-flotte-" in res.headers["content-disposition"]
         assert res.content[:4] == b"%PDF"
+
+    def test_fleet_context_breaks_down_maintenance_by_vehicle_and_driver(
+        self, client, db
+    ):
+        from app.models.user import User
+        from app.services import template_report_service
+
+        _seed_plans(db)
+        token = _register_and_verify(client, db, "fleetmnt@test.ci")
+        owner_id = _get_user_id(token)
+        headers = _headers(token)
+
+        v_id = _create_vehicle(client, headers, "FMT-001-CI", "Camion M")
+        driver = _create_driver_in_db(db, owner_id, "drv_fmnt", full_name="Kouassi K.")
+        client.post(
+            f"/api/v1/vehicles/{v_id}/drivers",
+            json={"driver_id": driver.id},
+            headers=headers,
+        )
+        client.post(
+            f"/api/v1/vehicles/{v_id}/maintenance-expenses",
+            json={"date": date.today().isoformat(), "type": "Pneus", "cost_fcfa": 50000},
+            headers=headers,
+        )
+
+        owner = db.query(User).filter(User.id == owner_id).first()
+        ctx = template_report_service.build_fleet_context(
+            owner, db, date.today() - timedelta(days=1), date.today() + timedelta(days=1)
+        )
+        assert ctx["totals"]["maintenance_spend_fcfa"] == 50000
+        veh = next(v for v in ctx["vehicles"] if v["id"] == v_id)
+        assert veh["maintenance_fcfa"] == 50000
+        drv = next(d for d in ctx["drivers"] if d["full_name"] == "Kouassi K.")
+        assert drv["maintenance_fcfa"] == 50000
+        assert drv["total_fcfa"] == drv["spend_fcfa"] + drv["maintenance_fcfa"]
+
+    def test_driver_context_includes_assigned_vehicle_maintenance(self, client, db):
+        from app.models.user import User
+        from app.services import template_report_service
+
+        _seed_plans(db)
+        token = _register_and_verify(client, db, "drvmnt@test.ci")
+        owner_id = _get_user_id(token)
+        headers = _headers(token)
+
+        v_id = _create_vehicle(client, headers, "DMT-001-CI", "Voiture M")
+        driver = _create_driver_in_db(db, owner_id, "drv_dmnt", full_name="Diabaté D.")
+        client.post(
+            f"/api/v1/vehicles/{v_id}/drivers",
+            json={"driver_id": driver.id},
+            headers=headers,
+        )
+        client.post(
+            f"/api/v1/vehicles/{v_id}/maintenance-expenses",
+            json={"date": date.today().isoformat(), "type": "Freins", "cost_fcfa": 30000},
+            headers=headers,
+        )
+
+        owner = db.query(User).filter(User.id == owner_id).first()
+        ctx = template_report_service.build_driver_context(
+            owner,
+            db,
+            driver.id,
+            date.today() - timedelta(days=1),
+            date.today() + timedelta(days=1),
+        )
+        assert ctx["maintenance"]["total_fcfa"] == 30000
+        assert ctx["totals"]["maintenance_spend_fcfa"] == 30000
+        assert len(ctx["maintenance"]["rows"]) == 1
+        assert ctx["maintenance"]["rows"][0]["type"] == "Freins"
 
     def test_empty_range_renders_gracefully(self, client, db):
         _seed_plans(db)

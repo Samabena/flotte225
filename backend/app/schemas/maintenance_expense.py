@@ -1,27 +1,37 @@
 import datetime as dt
-from typing import Literal
 
 from pydantic import BaseModel, field_validator
 
-ExpenseType = Literal[
-    "Vidange",
-    "Pneus",
-    "Freins",
-    "Révision",
-    "Carrosserie",
-    "Batterie",
-    "Autre",
-]
+# Common types are offered as suggestions in the UI ("Vidange", "Pneus", …),
+# but the user may type any custom type ("Autre"). Stored verbatim; capped to
+# the DB column width. "Vidange" keeps its special oil-change handling.
+MAX_TYPE_LEN = 50
+
+
+def _clean_type(v: str | None) -> str | None:
+    if v is None:
+        return None
+    v = v.strip()
+    if not v:
+        raise ValueError("Le type est obligatoire")
+    if len(v) > MAX_TYPE_LEN:
+        raise ValueError(f"Le type ne doit pas dépasser {MAX_TYPE_LEN} caractères")
+    return v
 
 
 class MaintenanceExpenseCreate(BaseModel):
     date: dt.date
     odometer_km: int | None = None
-    type: ExpenseType
+    type: str
     cost_fcfa: float
     location: str | None = None
     note: str | None = None
     client_uuid: str | None = None  # idempotency key for offline sync
+
+    @field_validator("type")
+    @classmethod
+    def type_valid(cls, v: str) -> str:
+        return _clean_type(v)
 
     @field_validator("cost_fcfa")
     @classmethod
@@ -41,10 +51,15 @@ class MaintenanceExpenseCreate(BaseModel):
 class MaintenanceExpenseUpdate(BaseModel):
     date: dt.date | None = None
     odometer_km: int | None = None
-    type: ExpenseType | None = None
+    type: str | None = None
     cost_fcfa: float | None = None
     location: str | None = None
     note: str | None = None
+
+    @field_validator("type")
+    @classmethod
+    def type_valid(cls, v: str | None) -> str | None:
+        return _clean_type(v)
 
     @field_validator("cost_fcfa")
     @classmethod

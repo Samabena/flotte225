@@ -7,7 +7,17 @@ from app.schemas.alert import AlertResponse
 class VehicleSpend(BaseModel):
     vehicle_id: int
     vehicle_name: str
-    spend_fcfa: Decimal
+    fuel_fcfa: Decimal
+    maintenance_fcfa: Decimal
+    spend_fcfa: Decimal  # fuel + maintenance
+
+
+class DriverSpend(BaseModel):
+    driver_id: int | None  # None = unassigned vehicles ("Non attribué")
+    driver_name: str
+    fuel_fcfa: Decimal  # fuel logged by this driver
+    maintenance_fcfa: Decimal  # maintenance of vehicles assigned to this driver
+    spend_fcfa: Decimal  # fuel + maintenance
 
 
 class MonthlySpend(BaseModel):
@@ -19,11 +29,10 @@ class FinancialSummary(BaseModel):
     total_spend_fcfa: Decimal  # grand total = fuel + maintenance
     fuel_total_fcfa: Decimal
     maintenance_total_fcfa: Decimal
-    total_revenue_fcfa: Decimal
-    net_profit_fcfa: Decimal  # revenue - total spend
     total_distance_km: int
     cost_per_km_fcfa: Decimal
-    spend_per_vehicle: list[VehicleSpend]
+    spend_per_vehicle: list[VehicleSpend]  # fuel + maintenance, per vehicle
+    spend_per_driver: list[DriverSpend]  # fuel (logged) + maintenance (assigned)
     monthly_trend: list[MonthlySpend]
 
 

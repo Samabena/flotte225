@@ -144,6 +144,7 @@
             <option>Vidange</option><option>Pneus</option><option>Freins</option>
             <option>Révision</option><option>Carrosserie</option><option>Batterie</option><option>Autre</option>
           </select>
+          <input id="me-type-other" type="text" maxlength="50" class="hidden mt-2 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#005F02]/30" placeholder="Précisez le type" />
         </div>
         <div>
           <label class="block text-xs text-gray-500 mb-1">Date</label>
@@ -170,36 +171,6 @@
       <div id="me-success" class="hidden mt-3 text-sm bg-green-50 border border-green-100 text-green-700 rounded-lg px-3 py-2"></div>
     </div>
 
-    <!-- Recette (saisie par le chauffeur) -->
-    <div class="card p-5 mb-6">
-      <p class="font-semibold text-gray-700 mb-3">Ajouter une recette</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Véhicule</label>
-          <select id="rev-vehicle" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#005F02]/30">
-            <option value="">— Sélectionner —</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Date</label>
-          <input id="rev-date" type="date" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#005F02]/30" />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Montant (FCFA)</label>
-          <input id="rev-amount" type="number" min="0" inputmode="numeric" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#005F02]/30" placeholder="Ex : 25000" />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Note <span class="text-gray-400">(optionnel)</span></label>
-          <input id="rev-note" type="text" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#005F02]/30" placeholder="Ex : Recette de la journée" />
-        </div>
-      </div>
-      <button id="btn-add-revenue"
-              class="mt-4 w-full sm:w-auto bg-[#005F02] hover:bg-[#004801] text-white py-2.5 px-6 rounded-lg font-semibold text-sm transition disabled:opacity-50">
-        Ajouter la recette
-      </button>
-      <div id="rev-error" class="hidden mt-3 text-sm bg-red-50 border border-red-100 text-red-700 rounded-lg px-3 py-2"></div>
-      <div id="rev-success" class="hidden mt-3 text-sm bg-green-50 border border-green-100 text-green-700 rounded-lg px-3 py-2"></div>
-    </div>
 
     <!-- Recent fuel entries -->
     <div class="card p-5">

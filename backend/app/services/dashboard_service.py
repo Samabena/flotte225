@@ -5,19 +5,44 @@ from sqlalchemy.orm import Session
 
 from app.models.fuel_entry import FuelEntry
 from app.models.maintenance_expense import MaintenanceExpense
-from app.models.revenue import Revenue
 from app.models.vehicle import Vehicle
 from app.models.vehicle_driver import VehicleDriver
 from app.models.user import User
 from app.schemas.dashboard import (
     ConsumptionIndicator,
     DashboardResponse,
+    DriverSpend,
     DriverStatus,
     FinancialSummary,
     MonthlySpend,
     VehicleSpend,
 )
 from app.services.alert_service import compute_alerts
+
+
+def _vehicle_driver_map(db: Session, owner_id: int) -> dict[int, tuple[int, str]]:
+    """Map each of the owner's vehicles to its most-recently-assigned driver.
+
+    Maintenance is attributed "par chauffeur" through this link. A vehicle with
+    several assignments resolves to the latest one; unassigned vehicles are
+    absent (callers bucket them as "Non attribué")."""
+    rows = (
+        db.query(
+            VehicleDriver.vehicle_id,
+            VehicleDriver.driver_id,
+            User.full_name,
+        )
+        .join(Vehicle, VehicleDriver.vehicle_id == Vehicle.id)
+        .join(User, VehicleDriver.driver_id == User.id)
+        .filter(Vehicle.owner_id == owner_id)
+        .order_by(VehicleDriver.vehicle_id, VehicleDriver.assigned_at.desc())
+        .all()
+    )
+    result: dict[int, tuple[int, str]] = {}
+    for r in rows:
+        if r.vehicle_id not in result:  # first seen = most recent assignment
+            result[r.vehicle_id] = (r.driver_id, r.full_name)
+    return result
 
 
 def get_dashboard_data(db: Session, owner_id: int) -> DashboardResponse:
@@ -49,15 +74,6 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
 
     grand_total = Decimal(str(fuel_total)) + Decimal(str(maintenance_total))
 
-    revenue_total = (
-        db.query(func.coalesce(func.sum(Revenue.amount_fcfa), 0))
-        .join(Vehicle, Revenue.vehicle_id == Vehicle.id)
-        .filter(Vehicle.owner_id == owner_id)
-        .scalar()
-    )
-    revenue_total = Decimal(str(revenue_total))
-    net_profit = revenue_total - grand_total
-
     total_distance = (
         db.query(func.coalesce(func.sum(FuelEntry.distance_km), 0))
         .join(Vehicle, FuelEntry.vehicle_id == Vehicle.id)
@@ -71,22 +87,100 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
         else Decimal("0")
     )
 
-    spend_rows = (
-        db.query(
-            Vehicle.id, Vehicle.name, func.sum(FuelEntry.amount_fcfa).label("spend")
-        )
-        .join(FuelEntry, FuelEntry.vehicle_id == Vehicle.id)
+    # Per-vehicle spend = fuel + maintenance (merged from two grouped queries).
+    name_map = {
+        v.id: v.name
+        for v in db.query(Vehicle.id, Vehicle.name)
         .filter(Vehicle.owner_id == owner_id)
-        .group_by(Vehicle.id, Vehicle.name)
-        .order_by(func.sum(FuelEntry.amount_fcfa).desc())
         .all()
-    )
-    spend_per_vehicle = [
-        VehicleSpend(
-            vehicle_id=r.id, vehicle_name=r.name, spend_fcfa=Decimal(str(r.spend or 0))
+    }
+    fuel_by_vehicle = {
+        r.vehicle_id: Decimal(str(r.spend or 0))
+        for r in db.query(
+            FuelEntry.vehicle_id, func.sum(FuelEntry.amount_fcfa).label("spend")
         )
-        for r in spend_rows
+        .join(Vehicle, FuelEntry.vehicle_id == Vehicle.id)
+        .filter(Vehicle.owner_id == owner_id)
+        .group_by(FuelEntry.vehicle_id)
+        .all()
+    }
+    maint_by_vehicle = {
+        r.vehicle_id: Decimal(str(r.spend or 0))
+        for r in db.query(
+            MaintenanceExpense.vehicle_id,
+            func.sum(MaintenanceExpense.cost_fcfa).label("spend"),
+        )
+        .join(Vehicle, MaintenanceExpense.vehicle_id == Vehicle.id)
+        .filter(Vehicle.owner_id == owner_id)
+        .group_by(MaintenanceExpense.vehicle_id)
+        .all()
+    }
+    spend_per_vehicle = []
+    for vid, name in name_map.items():
+        fuel = fuel_by_vehicle.get(vid, Decimal("0"))
+        maint = maint_by_vehicle.get(vid, Decimal("0"))
+        if fuel == 0 and maint == 0:
+            continue
+        spend_per_vehicle.append(
+            VehicleSpend(
+                vehicle_id=vid,
+                vehicle_name=name,
+                fuel_fcfa=fuel,
+                maintenance_fcfa=maint,
+                spend_fcfa=fuel + maint,
+            )
+        )
+    spend_per_vehicle.sort(key=lambda r: r.spend_fcfa, reverse=True)
+
+    # Spend "par chauffeur" = fuel (attributed to whoever logged the fill-up)
+    # + maintenance (attributed via the vehicle's assigned driver).
+    driver_map = _vehicle_driver_map(db, owner_id)
+    driver_names: dict[int | None, str] = {None: "Non attribué"}
+
+    fuel_by_driver: dict[int | None, Decimal] = {}
+    for r in (
+        db.query(
+            FuelEntry.driver_id, func.sum(FuelEntry.amount_fcfa).label("spend")
+        )
+        .join(Vehicle, FuelEntry.vehicle_id == Vehicle.id)
+        .filter(Vehicle.owner_id == owner_id)
+        .group_by(FuelEntry.driver_id)
+        .all()
+    ):
+        fuel_by_driver[r.driver_id] = Decimal(str(r.spend or 0))
+
+    maint_by_driver: dict[int | None, Decimal] = {}
+    for vid, maint in maint_by_vehicle.items():
+        if maint == 0:
+            continue
+        driver_id, driver_name = driver_map.get(vid, (None, "Non attribué"))
+        maint_by_driver[driver_id] = maint_by_driver.get(driver_id, Decimal("0")) + maint
+        driver_names[driver_id] = driver_name
+
+    # Resolve names for drivers that appear only via fuel.
+    missing_ids = [
+        did
+        for did in fuel_by_driver
+        if did is not None and did not in driver_names
     ]
+    if missing_ids:
+        for u in db.query(User.id, User.full_name).filter(User.id.in_(missing_ids)).all():
+            driver_names[u.id] = u.full_name
+
+    spend_per_driver = []
+    for did in set(fuel_by_driver) | set(maint_by_driver):
+        fuel = fuel_by_driver.get(did, Decimal("0"))
+        maint = maint_by_driver.get(did, Decimal("0"))
+        spend_per_driver.append(
+            DriverSpend(
+                driver_id=did,
+                driver_name=driver_names.get(did, "Non attribué"),
+                fuel_fcfa=fuel,
+                maintenance_fcfa=maint,
+                spend_fcfa=fuel + maint,
+            )
+        )
+    spend_per_driver.sort(key=lambda r: r.spend_fcfa, reverse=True)
 
     year_col = extract("year", FuelEntry.date)
     month_col = extract("month", FuelEntry.date)
@@ -115,11 +209,10 @@ def _get_financial_summary(db: Session, owner_id: int) -> FinancialSummary:
         total_spend_fcfa=grand_total,
         fuel_total_fcfa=Decimal(str(fuel_total)),
         maintenance_total_fcfa=Decimal(str(maintenance_total)),
-        total_revenue_fcfa=revenue_total,
-        net_profit_fcfa=net_profit,
         total_distance_km=total_distance,
         cost_per_km_fcfa=cost_per_km,
         spend_per_vehicle=spend_per_vehicle,
+        spend_per_driver=spend_per_driver,
         monthly_trend=monthly_trend,
     )
 

@@ -6,6 +6,5 @@ from app.models.vehicle_driver import VehicleDriver
 from app.models.alert_state import AlertState
 from app.models.trip_log import TripLog
 from app.models.maintenance_expense import MaintenanceExpense
-from app.models.revenue import Revenue
 
-__all__ = ["Vehicle", "User", "OtpCode", "SubscriptionPlan", "OwnerSubscription", "VehicleDriver", "AlertState", "TripLog", "MaintenanceExpense", "Revenue"]
+__all__ = ["Vehicle", "User", "OtpCode", "SubscriptionPlan", "OwnerSubscription", "VehicleDriver", "AlertState", "TripLog", "MaintenanceExpense"]
