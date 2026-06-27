@@ -44,6 +44,7 @@ from app.models.vehicle_driver import VehicleDriver
 from app.models.fuel_entry import FuelEntry
 from app.models.activity_log import ActivityLog
 from app.models.maintenance import Maintenance
+from app.models.maintenance_expense import MaintenanceExpense
 from app.models.subscription import SubscriptionPlan, OwnerSubscription
 from app.models.report_schedule import ReportSchedule
 from app.models.webhook_state import WebhookState
@@ -51,8 +52,10 @@ from app.models.webhook_state import WebhookState
 # ── Deterministic random so reruns produce the same data ──────────────────────
 random.seed(42)
 
-TODAY = date(2026, 4, 22)
-NOW = datetime(2026, 4, 22, 10, 0, 0)
+# Anchor the synthetic history to "now" so reports with default windows
+# (e.g. last 30 days) always have recent data to show.
+TODAY = date.today()
+NOW = datetime(TODAY.year, TODAY.month, TODAY.day, 10, 0, 0)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -462,6 +465,52 @@ def seed_demo():
             ))
             print(f"  {VEHICLES_DATA[vi][1]}: oil@{oil_km}km | insurance {ins_label} | inspection {insp_label}")
         db.commit()
+
+        # ── PHASE 3b: Maintenance expenses (spend journal) ───────────────────
+        # These power the "Maintenance par véhicule / par chauffeur" breakdowns
+        # on the dashboard and reports. Attribution is derived at read time from
+        # the vehicle→driver assignment, so we only set vehicle_id + cost here.
+        print("\n--- Phase 3b: maintenance expenses ---")
+        EXPENSE_TYPES = [
+            "Vidange", "Pneus", "Freins", "Révision",
+            "Batterie", "Climatisation", "Embrayage",
+        ]
+        GARAGES = [
+            "Garage Adjamé", "Garage Yopougon", "CFAO Motors",
+            "Garage Treichville", "Atelier Marcory", "Garage Cocody",
+        ]
+        COSTS = [15000, 20000, 25000, 35000, 45000, 60000, 80000, 120000]
+        total_exp = 0
+        for vi, (owner_idx, vname, *_rest) in enumerate(VEHICLES_DATA):
+            vehicle = vehicle_records[vi]
+            if (
+                db.query(MaintenanceExpense)
+                .filter(MaintenanceExpense.vehicle_id == vehicle.id)
+                .first()
+            ):
+                continue
+            latest = (
+                db.query(FuelEntry)
+                .filter(FuelEntry.vehicle_id == vehicle.id)
+                .order_by(FuelEntry.odometer_km.desc())
+                .first()
+            )
+            base_km = latest.odometer_km if latest else vehicle.initial_mileage
+            for _ in range(random.randint(2, 4)):
+                days = random.randint(5, 115)
+                db.add(MaintenanceExpense(
+                    vehicle_id=vehicle.id,
+                    date=days_ago(days),
+                    odometer_km=max(0, base_km - random.randint(0, 8000)),
+                    type=random.choice(EXPENSE_TYPES),
+                    cost_fcfa=Decimal(str(random.choice(COSTS))),
+                    location=random.choice(GARAGES),
+                    created_at=dt_ago(days=days),
+                    updated_at=dt_ago(days=days),
+                ))
+                total_exp += 1
+        db.commit()
+        print(f"  Maintenance expenses created: {total_exp}")
 
         # ── PHASE 4: Operational live state ──────────────────────────────────
         print("\n--- Phase 4: live operational state ---")

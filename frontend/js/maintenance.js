@@ -386,18 +386,33 @@ function renderExpenses(expenses) {
     </tr>`).join('');
 }
 
+// Show the free-text input only when "Autre" is selected, so the user can type
+// a custom expense type that isn't in the suggestion list.
+function toggleExpTypeOther() {
+  const other = document.getElementById('exp-type-other');
+  const isOther = document.getElementById('exp-type').value === 'Autre';
+  other.classList.toggle('hidden', !isOther);
+  if (isOther) other.focus();
+  else other.value = '';
+}
+document.getElementById('exp-type').addEventListener('change', toggleExpTypeOther);
+
 document.getElementById('btn-add-expense').addEventListener('click', async () => {
   document.getElementById('exp-error').classList.add('hidden');
   if (!selectedVehicleId) return;
 
   const date     = document.getElementById('exp-date').value;
-  const type     = document.getElementById('exp-type').value;
+  const typeSel  = document.getElementById('exp-type').value;
+  const type     = typeSel === 'Autre'
+    ? document.getElementById('exp-type-other').value.trim()
+    : typeSel;
   const km       = document.getElementById('exp-km').value;
   const cost     = document.getElementById('exp-cost').value;
   const location = document.getElementById('exp-location').value.trim();
   const note     = document.getElementById('exp-note').value.trim();
 
   if (!date) { showExpError('Veuillez indiquer la date.'); return; }
+  if (!type) { showExpError('Veuillez préciser le type.'); return; }
   if (cost === '' || parseFloat(cost) <= 0) { showExpError('Le coût doit être supérieur à 0.'); return; }
 
   const body = { date, type, cost_fcfa: parseFloat(cost) };
@@ -419,6 +434,8 @@ document.getElementById('btn-add-expense').addEventListener('click', async () =>
       document.getElementById('exp-cost').value     = '';
       document.getElementById('exp-location').value = '';
       document.getElementById('exp-note').value     = '';
+      document.getElementById('exp-type').value     = 'Vidange';
+      toggleExpTypeOther();
       await loadExpenses(selectedVehicleId);
       // A 'Vidange' may have advanced the oil-change km → refresh the record/badges.
       if (type === 'Vidange') await loadMaintenance(selectedVehicleId);

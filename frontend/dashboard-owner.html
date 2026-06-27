@@ -100,18 +100,9 @@
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
       <div class="card p-5">
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Recettes</p>
-        <p class="text-2xl font-bold text-[#005F02]" id="kpi-revenue">—</p>
-      </div>
-      <div class="card p-5">
         <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Dépense totale</p>
         <p class="text-2xl font-bold text-[#005F02]" id="kpi-total-spend">—</p>
         <p class="text-xs text-gray-400 mt-1" id="kpi-spend-breakdown"></p>
-      </div>
-      <div class="card p-5">
-        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Bénéfice net</p>
-        <p class="text-2xl font-bold text-[#005F02]" id="kpi-net-profit">—</p>
-        <p class="text-xs text-gray-400 mt-1">recettes − dépenses</p>
       </div>
       <div class="card p-5">
         <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Coût / km</p>
@@ -126,33 +117,6 @@
         <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Chauffeurs</p>
         <p class="text-2xl font-bold text-[#005F02]" id="kpi-active-drivers">—</p>
       </div>
-    </div>
-
-    <!-- Saisie rapide d'une recette -->
-    <div class="card p-5 mb-6">
-      <p class="font-semibold text-gray-700 mb-3">Ajouter une recette</p>
-      <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Véhicule</label>
-          <select id="rev-vehicle" class="input-field"><option value="">— Sélectionner —</option></select>
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Date</label>
-          <input id="rev-date" type="date" class="input-field" />
-        </div>
-        <div>
-          <label class="block text-xs text-gray-500 mb-1">Montant (FCFA)</label>
-          <input id="rev-amount" type="number" min="0" class="input-field" placeholder="Ex : 25000" />
-        </div>
-        <div>
-          <button id="btn-add-revenue" class="w-full bg-[#005F02] hover:bg-[#004a01] text-white text-sm font-semibold px-4 py-2 rounded-lg transition">Ajouter</button>
-        </div>
-        <div class="sm:col-span-4">
-          <input id="rev-note" type="text" class="input-field" placeholder="Note (optionnel)" />
-        </div>
-      </div>
-      <div id="rev-error" class="hidden mt-3 text-red-600 text-xs"></div>
-      <div id="rev-success" class="hidden mt-3 text-green-700 text-xs"></div>
     </div>
 
     <!-- Charts Row -->
@@ -199,6 +163,13 @@
         <ul id="drivers-list" class="flex flex-col gap-2"></ul>
         <p id="empty-drivers" class="hidden text-center text-gray-400 text-sm py-6">Aucun chauffeur</p>
       </div>
+    </div>
+
+    <!-- Dépense par chauffeur (carburant + maintenance) -->
+    <div class="card p-5 mb-6">
+      <p class="font-semibold text-gray-700 mb-3">Dépense par chauffeur</p>
+      <ul id="spend-driver-list" class="flex flex-col gap-2 text-sm"></ul>
+      <p id="empty-spend-driver" class="hidden text-center text-gray-400 text-sm py-6">Aucune dépense</p>
     </div>
 
     <!-- Donut + Plan usage row (US-021, US-046) -->

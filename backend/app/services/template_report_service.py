@@ -22,6 +22,7 @@ from app.models.fuel_entry import FuelEntry
 from app.models.maintenance_expense import MaintenanceExpense
 from app.models.user import User
 from app.models.vehicle import Vehicle
+from app.models.vehicle_driver import VehicleDriver
 from app.services.alert_service import compute_alerts
 
 
@@ -68,9 +69,14 @@ def _format_date_fr(value) -> str:
 
 
 def _build_env() -> Environment:
+    # autoescape=True (not select_autoescape) because our templates are named
+    # *.html.j2 — select_autoescape keys off the ".html"/".xml" suffix and would
+    # NOT enable escaping for a ".j2" name, leaving user-supplied fields (expense
+    # type, location, vehicle/driver names) unescaped in the HTML fed to
+    # WeasyPrint → HTML injection / SSRF via its resource fetcher.
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATES_DIR)),
-        autoescape=select_autoescape(["html", "xml"]),
+        autoescape=True,
     )
     env.filters["format_fcfa"] = _format_fcfa
     env.filters["format_number"] = _format_number
@@ -109,6 +115,41 @@ def _avg_consumption(entries: Iterable[FuelEntry]) -> float | None:
     return sum(values) / len(values)
 
 
+def _maintenance_by_vehicle(
+    db: Session, owner_id: int, date_from: date, date_to: date
+) -> dict[int, float]:
+    rows = (
+        db.query(
+            MaintenanceExpense.vehicle_id,
+            func.sum(MaintenanceExpense.cost_fcfa).label("cost"),
+        )
+        .join(Vehicle, MaintenanceExpense.vehicle_id == Vehicle.id)
+        .filter(
+            Vehicle.owner_id == owner_id,
+            MaintenanceExpense.date >= date_from,
+            MaintenanceExpense.date <= date_to,
+        )
+        .group_by(MaintenanceExpense.vehicle_id)
+        .all()
+    )
+    return {r.vehicle_id: float(r.cost or 0) for r in rows}
+
+
+def _vehicle_driver_map(db: Session, owner_id: int) -> dict[int, int]:
+    """Vehicle → most-recently-assigned driver id (for attributing maintenance)."""
+    rows = (
+        db.query(VehicleDriver.vehicle_id, VehicleDriver.driver_id)
+        .join(Vehicle, VehicleDriver.vehicle_id == Vehicle.id)
+        .filter(Vehicle.owner_id == owner_id)
+        .order_by(VehicleDriver.vehicle_id, VehicleDriver.assigned_at.desc())
+        .all()
+    )
+    result: dict[int, int] = {}
+    for r in rows:
+        result.setdefault(r.vehicle_id, r.driver_id)
+    return result
+
+
 def _french_month_label(year: int, month: int) -> str:
     months = [
         "janv.",
@@ -143,6 +184,10 @@ def build_fleet_context(
     total_km = _sum_distance(entries)
     avg_consumption = _avg_consumption(entries)
 
+    # Maintenance over the period, grouped by vehicle, attributed to drivers.
+    maint_by_vehicle = _maintenance_by_vehicle(db, owner.id, date_from, date_to)
+    driver_of_vehicle = _vehicle_driver_map(db, owner.id)
+
     # Per-vehicle aggregation
     vehicles = (
         db.query(Vehicle)
@@ -159,11 +204,15 @@ def build_fleet_context(
         v_entries = by_vehicle.get(v.id, [])
         if not v_entries and v.status == "archived":
             continue
+        fuel_spend = sum(float(e.amount_fcfa) for e in v_entries)
+        maint_spend = maint_by_vehicle.get(v.id, 0.0)
         vehicle_rows.append(
             {
                 "id": v.id,
                 "name": v.name,
-                "spend_fcfa": sum(float(e.amount_fcfa) for e in v_entries),
+                "fuel_fcfa": fuel_spend,
+                "maintenance_fcfa": maint_spend,
+                "spend_fcfa": fuel_spend + maint_spend,
                 "litres": sum(float(e.quantity_litres) for e in v_entries),
                 "distance_km": _sum_distance(v_entries),
                 "avg_consumption": _avg_consumption(v_entries),
@@ -213,9 +262,18 @@ def build_fleet_context(
         for v in db.query(Vehicle).filter(Vehicle.id.in_(av_ids)).all():
             active_vehicle_names[v.id] = v.name
 
+    # Maintenance per driver = sum of their assigned vehicles' maintenance.
+    maint_by_driver: dict[int, float] = {}
+    for vid, cost in maint_by_vehicle.items():
+        did = driver_of_vehicle.get(vid)
+        if did is not None:
+            maint_by_driver[did] = maint_by_driver.get(did, 0.0) + cost
+
     driver_rows = []
     for d in drivers:
         d_entries = driver_entries.get(d.id, [])
+        fuel_spend = sum(float(e.amount_fcfa) for e in d_entries)
+        maint_spend = maint_by_driver.get(d.id, 0.0)
         driver_rows.append(
             {
                 "full_name": d.full_name,
@@ -223,7 +281,9 @@ def build_fleet_context(
                 "driving_status": d.driving_status,
                 "active_vehicle_name": active_vehicle_names.get(d.active_vehicle_id),
                 "entries": len(d_entries),
-                "spend_fcfa": sum(float(e.amount_fcfa) for e in d_entries),
+                "spend_fcfa": fuel_spend,
+                "maintenance_fcfa": maint_spend,
+                "total_fcfa": fuel_spend + maint_spend,
             }
         )
 
@@ -240,18 +300,9 @@ def build_fleet_context(
         for a in alerts_raw
     ]
 
-    # Maintenance expenses over the period (fleet-wide)
-    maintenance_total = (
-        db.query(func.coalesce(func.sum(MaintenanceExpense.cost_fcfa), 0))
-        .join(Vehicle, MaintenanceExpense.vehicle_id == Vehicle.id)
-        .filter(
-            Vehicle.owner_id == owner.id,
-            MaintenanceExpense.date >= date_from,
-            MaintenanceExpense.date <= date_to,
-        )
-        .scalar()
-    )
-    maintenance_total = float(maintenance_total or 0)
+    # Maintenance expenses over the period (fleet-wide) — sum of the per-vehicle
+    # breakdown so totals reconcile with the per-vehicle / per-driver tables.
+    maintenance_total = sum(maint_by_vehicle.values())
     grand_total = total_spend + maintenance_total
 
     active_vehicles = sum(1 for v in vehicles if v.status == "active")
@@ -352,6 +403,39 @@ def build_driver_context(
         for e in entries
     ]
 
+    # Maintenance for the vehicles this driver is responsible for (assigned to).
+    my_vehicle_ids = [
+        vid
+        for vid, did in _vehicle_driver_map(db, owner.id).items()
+        if did == driver_id
+    ]
+    maintenance_rows = []
+    maintenance_total = 0.0
+    if my_vehicle_ids:
+        m_rows = (
+            db.query(MaintenanceExpense, Vehicle.name)
+            .join(Vehicle, MaintenanceExpense.vehicle_id == Vehicle.id)
+            .filter(
+                MaintenanceExpense.vehicle_id.in_(my_vehicle_ids),
+                MaintenanceExpense.date >= date_from,
+                MaintenanceExpense.date <= date_to,
+            )
+            .order_by(MaintenanceExpense.date.desc())
+            .all()
+        )
+        for exp, vname in m_rows:
+            cost = float(exp.cost_fcfa)
+            maintenance_total += cost
+            maintenance_rows.append(
+                {
+                    "date": _format_date_fr(exp.date),
+                    "vehicle_name": vname,
+                    "type": exp.type,
+                    "cost_fcfa": cost,
+                    "location": exp.location or "—",
+                }
+            )
+
     return {
         "company_name": owner.company_name or owner.full_name,
         "owner_name": owner.full_name,
@@ -367,12 +451,17 @@ def build_driver_context(
         },
         "totals": {
             "total_spend_fcfa": total_spend,
+            "maintenance_spend_fcfa": maintenance_total,
             "total_litres": total_litres,
             "total_km": total_km,
             "avg_consumption": avg_consumption,
             "avg_litres_per_entry": avg_litres_per_entry,
             "cost_per_km": cost_per_km,
             "entries_count": len(entries),
+        },
+        "maintenance": {
+            "total_fcfa": maintenance_total,
+            "rows": maintenance_rows,
         },
         "vehicles_driven": vehicles_driven,
         "entries": entry_rows,
@@ -382,13 +471,20 @@ def build_driver_context(
 # ── Renderers ────────────────────────────────────────────────────────────────
 
 
+def _safe_url_fetcher(url: str):
+    """Defense-in-depth: our reports embed no external/local resources, so block
+    every fetch. Stops HTML injected into user fields (already escaped, but in
+    case escaping is ever weakened) from turning into SSRF or local file reads."""
+    raise ValueError(f"External resource fetching is disabled in reports: {url}")
+
+
 def _render_pdf(template_name: str, context: dict) -> bytes:
     # WeasyPrint is imported lazily to keep service import lightweight in tests
     # that don't render (e.g., context-only tests can mock _render_pdf).
     from weasyprint import HTML
 
     html = _env.get_template(template_name).render(**context)
-    return HTML(string=html).write_pdf()
+    return HTML(string=html, url_fetcher=_safe_url_fetcher).write_pdf()
 
 
 def render_fleet_pdf(owner: User, db: Session, date_from: date, date_to: date) -> bytes:

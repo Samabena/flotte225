@@ -29,9 +29,14 @@
   <h2>Synthèse de la période</h2>
   <div class="kpi-grid">
     <div class="kpi">
-      <div class="label">Dépense totale</div>
+      <div class="label">Dépense carburant</div>
       <div class="value">{{ totals.total_spend_fcfa | format_fcfa }}</div>
       <div class="sub">{{ totals.entries_count }} plein{{ 's' if totals.entries_count > 1 else '' }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Dépense maintenance</div>
+      <div class="value">{{ totals.maintenance_spend_fcfa | format_fcfa }}</div>
+      <div class="sub">véhicules assignés</div>
     </div>
     <div class="kpi">
       <div class="label">Litres consommés</div>
@@ -118,6 +123,38 @@
     </table>
   {% else %}
     <p class="empty">Aucun plein enregistré sur la période.</p>
+  {% endif %}
+
+  <h2>Dépenses de maintenance (véhicules assignés)</h2>
+  {% if maintenance.rows %}
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Véhicule</th>
+          <th>Type</th>
+          <th>Lieu</th>
+          <th class="num">Coût (FCFA)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in maintenance.rows %}
+        <tr>
+          <td>{{ m.date }}</td>
+          <td>{{ m.vehicle_name }}</td>
+          <td>{{ m.type }}</td>
+          <td>{{ m.location }}</td>
+          <td class="num">{{ m.cost_fcfa | format_fcfa }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td colspan="4"><strong>Total</strong></td>
+          <td class="num"><strong>{{ maintenance.total_fcfa | format_fcfa }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  {% else %}
+    <p class="empty">Aucune dépense de maintenance sur la période.</p>
   {% endif %}
 
 {% endblock %}

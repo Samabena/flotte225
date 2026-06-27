@@ -241,6 +241,73 @@ class TestDashboardFinancial:
         assert int(financial["total_distance_km"]) == 200
         assert float(financial["cost_per_km_fcfa"]) == 500  # 100000 / 200
 
+    def test_spend_per_vehicle_includes_maintenance(self, client, db):
+        _seed_plans(db)
+        owner_token = _register_and_verify(client, db, "mbd1@test.ci")
+        owner_headers = {"Authorization": f"Bearer {owner_token}"}
+        _, driver_id = _make_driver_token(client, db, owner_token, "mbddrv1")
+        v1 = _create_vehicle(client, owner_headers, plate="MBD-001-CI")
+        _add_fuel(db, v1, driver_id, 10100, 60000)
+        client.post(
+            f"/api/v1/vehicles/{v1}/maintenance-expenses",
+            json={"date": str(date.today()), "type": "Pneus", "cost_fcfa": 40000},
+            headers=owner_headers,
+        )
+        spv = client.get("/api/v1/dashboard/owner", headers=owner_headers).json()[
+            "data"
+        ]["financial"]["spend_per_vehicle"]
+        assert len(spv) == 1
+        assert float(spv[0]["fuel_fcfa"]) == 60000
+        assert float(spv[0]["maintenance_fcfa"]) == 40000
+        assert float(spv[0]["spend_fcfa"]) == 100000
+
+    def test_spend_per_driver_combines_fuel_and_maintenance(self, client, db):
+        _seed_plans(db)
+        owner_token = _register_and_verify(client, db, "mbd2@test.ci")
+        owner_headers = {"Authorization": f"Bearer {owner_token}"}
+        _, driver_id = _make_driver_token(client, db, owner_token, "mbddrv2")
+        v1 = _create_vehicle(client, owner_headers, plate="MBD-002-CI")
+        client.post(
+            f"/api/v1/vehicles/{v1}/drivers",
+            json={"driver_id": driver_id},
+            headers=owner_headers,
+        )
+        # Driver logs fuel; owner logs maintenance (attributed to assigned driver).
+        _add_fuel(db, v1, driver_id, 10100, 50000)
+        client.post(
+            f"/api/v1/vehicles/{v1}/maintenance-expenses",
+            json={"date": str(date.today()), "type": "Freins", "cost_fcfa": 35000},
+            headers=owner_headers,
+        )
+        spd = client.get("/api/v1/dashboard/owner", headers=owner_headers).json()[
+            "data"
+        ]["financial"]["spend_per_driver"]
+        assert len(spd) == 1
+        assert spd[0]["driver_id"] == driver_id
+        assert float(spd[0]["fuel_fcfa"]) == 50000
+        assert float(spd[0]["maintenance_fcfa"]) == 35000
+        assert float(spd[0]["spend_fcfa"]) == 85000
+
+    def test_maintenance_for_unassigned_vehicle_is_non_attribue(self, client, db):
+        _seed_plans(db)
+        owner_token = _register_and_verify(client, db, "mbd3@test.ci")
+        owner_headers = {"Authorization": f"Bearer {owner_token}"}
+        v1 = _create_vehicle(client, owner_headers, plate="MBD-003-CI")
+        client.post(
+            f"/api/v1/vehicles/{v1}/maintenance-expenses",
+            json={"date": str(date.today()), "type": "Vidange", "cost_fcfa": 20000},
+            headers=owner_headers,
+        )
+        spd = client.get("/api/v1/dashboard/owner", headers=owner_headers).json()[
+            "data"
+        ]["financial"]["spend_per_driver"]
+        assert len(spd) == 1
+        assert spd[0]["driver_id"] is None
+        assert spd[0]["driver_name"] == "Non attribué"
+        assert float(spd[0]["maintenance_fcfa"]) == 20000
+        assert float(spd[0]["fuel_fcfa"]) == 0
+        assert float(spd[0]["spend_fcfa"]) == 20000
+
     def test_spend_per_vehicle_is_grouped(self, client, db):
         _seed_plans(db)
         owner_token = _register_and_verify(client, db, "fin2@test.ci")

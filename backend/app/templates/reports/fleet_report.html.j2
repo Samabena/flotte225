@@ -55,7 +55,9 @@
       <thead>
         <tr>
           <th>Véhicule</th>
-          <th class="num">Dépense (FCFA)</th>
+          <th class="num">Carburant (FCFA)</th>
+          <th class="num">Maintenance (FCFA)</th>
+          <th class="num">Total (FCFA)</th>
           <th class="num">Litres</th>
           <th class="num">Distance (km)</th>
           <th class="num">Conso. L/100km</th>
@@ -65,6 +67,8 @@
         {% for v in vehicles %}
         <tr>
           <td>{{ v.name }}</td>
+          <td class="num">{{ v.fuel_fcfa | format_fcfa }}</td>
+          <td class="num">{{ v.maintenance_fcfa | format_fcfa }}</td>
           <td class="num">{{ v.spend_fcfa | format_fcfa }}</td>
           <td class="num">{{ v.litres | format_number(2) }}</td>
           <td class="num">{{ v.distance_km | format_number(0) }}</td>
@@ -116,7 +120,9 @@
           <th>Statut</th>
           <th>Véhicule actif</th>
           <th class="num">Pleins (période)</th>
-          <th class="num">Dépense (FCFA)</th>
+          <th class="num">Carburant (FCFA)</th>
+          <th class="num">Maintenance (FCFA)</th>
+          <th class="num">Total (FCFA)</th>
         </tr>
       </thead>
       <tbody>
@@ -135,6 +141,8 @@
           <td>{{ d.active_vehicle_name or '—' }}</td>
           <td class="num">{{ d.entries }}</td>
           <td class="num">{{ d.spend_fcfa | format_fcfa }}</td>
+          <td class="num">{{ d.maintenance_fcfa | format_fcfa }}</td>
+          <td class="num">{{ d.total_fcfa | format_fcfa }}</td>
         </tr>
         {% endfor %}
       </tbody>

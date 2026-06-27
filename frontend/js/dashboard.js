@@ -79,68 +79,13 @@ async function loadDashboard() {
 
   renderKPIs(data);
   renderSpendByVehicle(data.financial.spend_per_vehicle);
+  renderSpendByDriver(data.financial.spend_per_driver);
   renderMonthlyTrend(data.financial.monthly_trend);
   renderSpendDonut(data.financial.spend_per_vehicle);
   renderConsumption(data.consumption);
   renderDrivers(data.drivers);
   renderAlerts(data.alerts);
-  populateRevenueVehicles(data.consumption);
 }
-
-// ── Quick revenue entry (owner) ───────────────────────────────────────────────
-function populateRevenueVehicles(consumption) {
-  const sel = document.getElementById('rev-vehicle');
-  if (!sel) return;
-  const list = consumption || [];
-  sel.innerHTML = '<option value="">— Sélectionner —</option>' +
-    list.map(v => `<option value="${v.vehicle_id}">${v.vehicle_name}</option>`).join('');
-  const d = document.getElementById('rev-date');
-  if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
-}
-
-document.getElementById('btn-add-revenue')?.addEventListener('click', async () => {
-  const errEl = document.getElementById('rev-error');
-  const okEl  = document.getElementById('rev-success');
-  errEl.classList.add('hidden'); okEl.classList.add('hidden');
-
-  const vehicleId = document.getElementById('rev-vehicle').value;
-  const date      = document.getElementById('rev-date').value;
-  const amount    = document.getElementById('rev-amount').value;
-  const note      = document.getElementById('rev-note').value.trim();
-
-  const fail = (m) => { errEl.textContent = m; errEl.classList.remove('hidden'); };
-  if (!vehicleId) return fail('Veuillez sélectionner un véhicule.');
-  if (!date) return fail('Veuillez indiquer la date.');
-  if (amount === '' || parseFloat(amount) <= 0) return fail('Le montant doit être supérieur à 0.');
-
-  const body = { date, amount_fcfa: parseFloat(amount) };
-  if (note) body.note = note;
-
-  const btn = document.getElementById('btn-add-revenue');
-  btn.disabled = true;
-  try {
-    const res = await fetch(`${API}/vehicles/${vehicleId}/revenues`, {
-      method: 'POST',
-      headers: { ...authHeader(), 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (res.ok) {
-      okEl.textContent = 'Recette enregistrée.';
-      okEl.classList.remove('hidden');
-      document.getElementById('rev-amount').value = '';
-      document.getElementById('rev-note').value = '';
-      loadDashboard();  // refresh KPIs (recettes + bénéfice net)
-      setTimeout(() => okEl.classList.add('hidden'), 4000);
-    } else {
-      const detail = json.detail;
-      fail(Array.isArray(detail) ? detail.map(d => d.msg).join(' · ') : (detail || "Erreur lors de l'enregistrement."));
-    }
-  } catch {
-    fail('Erreur réseau. Réessayez.');
-  }
-  btn.disabled = false;
-});
 
 // ── Fetch plan usage (US-046) ────────────────────────────────────────────────
 async function loadPlanUsage() {
@@ -168,14 +113,6 @@ function renderKPIs(data) {
   document.getElementById('kpi-spend-breakdown').textContent =
     `Carburant ${fcfa(fin.fuel_total_fcfa)} · Maintenance ${fcfa(fin.maintenance_total_fcfa)}`;
 
-  document.getElementById('kpi-revenue').textContent = fcfa(fin.total_revenue_fcfa);
-
-  const net = parseFloat(fin.net_profit_fcfa) || 0;
-  const netEl = document.getElementById('kpi-net-profit');
-  netEl.textContent = fcfa(net);
-  netEl.classList.toggle('text-red-600', net < 0);
-  netEl.classList.toggle('text-[#005F02]', net >= 0);
-
   const distance = parseInt(fin.total_distance_km) || 0;
   const costPerKm = parseFloat(fin.cost_per_km_fcfa) || 0;
   document.getElementById('kpi-cost-per-km').textContent =
@@ -198,32 +135,68 @@ function renderSpendByVehicle(spendData) {
   }
 
   const labels = spendData.map(v => v.vehicle_name);
-  const values = spendData.map(v => parseFloat(v.spend_fcfa));
-  const colors = labels.map((_, i) => i % 2 === 0 ? '#005F02' : '#C0B87A');
+  const fuel  = spendData.map(v => parseFloat(v.fuel_fcfa) || 0);
+  const maint = spendData.map(v => parseFloat(v.maintenance_fcfa) || 0);
 
   new Chart(document.getElementById('chart-spend-vehicle'), {
     type: 'bar',
     data: {
       labels,
-      datasets: [{
-        label: 'Dépense (FCFA)',
-        data: values,
-        backgroundColor: colors,
-        borderRadius: 4,
-      }]
+      datasets: [
+        { label: 'Carburant',   data: fuel,  backgroundColor: '#005F02', borderRadius: 4 },
+        { label: 'Maintenance', data: maint, backgroundColor: '#C0B87A', borderRadius: 4 },
+      ]
     },
     options: {
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: true, position: 'bottom' } },
       scales: {
+        x: { stacked: true, grid: { display: false } },
         y: {
+          stacked: true,
           ticks: { callback: v => v.toLocaleString('fr-FR') },
           grid: { color: '#f3f4f6' },
         },
-        x: { grid: { display: false } }
       }
     }
   });
+}
+
+// ── Dépense par chauffeur (carburant + maintenance) ───────────────────────────
+function renderSpendByDriver(rows) {
+  const list  = document.getElementById('spend-driver-list');
+  const empty = document.getElementById('empty-spend-driver');
+  if (!list) return;
+
+  if (!rows || rows.length === 0) {
+    list.innerHTML = '';
+    list.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  list.classList.remove('hidden');
+  empty.classList.add('hidden');
+
+  const fcfa = n => (parseFloat(n) || 0).toLocaleString('fr-FR') + ' FCFA';
+  const max = Math.max(...rows.map(r => parseFloat(r.spend_fcfa) || 0), 1);
+
+  list.innerHTML = rows.map(r => {
+    const total = parseFloat(r.spend_fcfa) || 0;
+    const fuel  = parseFloat(r.fuel_fcfa) || 0;
+    const maint = parseFloat(r.maintenance_fcfa) || 0;
+    const pct = Math.round(total / max * 100);
+    return `
+      <li class="py-1">
+        <div class="flex items-center justify-between mb-0.5">
+          <span class="font-medium">${esc(r.driver_name)}</span>
+          <span class="text-gray-700 font-semibold">${fcfa(total)}</span>
+        </div>
+        <div class="text-xs text-gray-400 mb-1">Carburant ${fcfa(fuel)} · Maintenance ${fcfa(maint)}</div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+          <div class="bg-[#005F02] h-2 rounded-full" style="width:${pct}%"></div>
+        </div>
+      </li>`;
+  }).join('');
 }
 
 // ── Monthly trend — line chart ───────────────────────────────────────────────
