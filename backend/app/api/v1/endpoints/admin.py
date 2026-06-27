@@ -6,7 +6,6 @@ Admin & subscription endpoints — Sprint 6 + 7
   US-039  GET  /admin/users/{id}/fleet
   US-040  PUT  /admin/users/{id}/plan
   US-041  GET  /admin/analytics
-  US-034  PATCH /owner/whatsapp
   US-046  GET  /subscription/my-plan
 """
 
@@ -139,25 +138,6 @@ def platform_analytics(
     return _ok(data=data)
 
 
-# ── US-034: Configure WhatsApp number ────────────────────────────────────────
-
-
-class WhatsAppConfigRequest(BaseModel):
-    whatsapp_number: str
-
-
-@router.patch("/owner/whatsapp", response_model=None)
-def configure_whatsapp(
-    body: WhatsAppConfigRequest,
-    owner: User = Depends(get_current_owner),
-    db: Session = Depends(get_db),
-):
-    """US-034 — Owner sets or updates their WhatsApp number for fleet alerts."""
-    owner.whatsapp_number = body.whatsapp_number.strip() or None
-    db.commit()
-    return _ok(message="Numéro WhatsApp mis à jour")
-
-
 # ── Owner settings ────────────────────────────────────────────────────────────
 
 
@@ -171,7 +151,6 @@ def get_owner_settings(
             "full_name": owner.full_name,
             "email": owner.email,
             "company_name": owner.company_name,
-            "whatsapp_number": owner.whatsapp_number or "",
             "email_alerts_enabled": owner.email_alerts_enabled,
         }
     )

@@ -12,8 +12,6 @@ services:
         sync: false  # paste your Neon connection string in the Render dashboard
       - key: SECRET_KEY
         generateValue: true
-      - key: ENVIRONMENT
-        value: production
       - key: SHOW_DOCS
         value: false
       - key: CORS_ORIGINS
@@ -25,19 +23,4 @@ services:
         sync: false
       - key: SENDGRID_FROM_EMAIL
         sync: false
-      # AI Reports (OpenRouter)
-      - key: OPENROUTER_API_KEY
-        sync: false
-      - key: OPENROUTER_MODEL
-        value: mistralai/mistral-large
-      # WhatsApp (Meta Cloud API)
-      - key: WHATSAPP_API_URL
-        sync: false
-      - key: WHATSAPP_TOKEN
-        sync: false
-      # Webhook
-      - key: WEBHOOK_URL
-        sync: false
-      - key: WEBHOOK_INTERVAL_HOURS
-        value: 24
 

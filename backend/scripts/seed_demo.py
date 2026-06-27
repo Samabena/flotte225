@@ -24,8 +24,6 @@ What it creates:
     - entries from today and yesterday (live feed)
     - cost-spike anomaly: April spend >30 % above March for Brou Kouamé
     - consumption anomaly: one vehicle's latest fill-up deviates >20 %
-    - webhook state record (business owner)
-    - report schedules (pro + business owners)
 """
 
 import os
@@ -46,8 +44,6 @@ from app.models.activity_log import ActivityLog
 from app.models.maintenance import Maintenance
 from app.models.maintenance_expense import MaintenanceExpense
 from app.models.subscription import SubscriptionPlan, OwnerSubscription
-from app.models.report_schedule import ReportSchedule
-from app.models.webhook_state import WebhookState
 
 # ── Deterministic random so reruns produce the same data ──────────────────────
 random.seed(42)
@@ -81,7 +77,6 @@ OWNERS = [
         "password": "Demo@2026!",
         "full_name": "Konan Aya",
         "phone": "+225 07 12 34 56",
-        "whatsapp_number": "+225 07 12 34 56",
         "plan": "pro",
     },
     {   # index 1
@@ -89,7 +84,6 @@ OWNERS = [
         "password": "Demo@2026!",
         "full_name": "Brou Kouamé",
         "phone": "+225 05 98 76 54",
-        "whatsapp_number": "+225 05 98 76 54",
         "plan": "business",
     },
     {   # index 2
@@ -97,7 +91,6 @@ OWNERS = [
         "password": "Demo@2026!",
         "full_name": "Ouattara Mamadou",
         "phone": "+225 01 23 45 67",
-        "whatsapp_number": None,
         "plan": "starter",
     },
 ]
@@ -297,7 +290,6 @@ def seed_demo():
                 role="OWNER",
                 full_name=od["full_name"],
                 phone=od["phone"],
-                whatsapp_number=od["whatsapp_number"],
                 is_verified=True,
                 is_active=True,
                 created_at=dt_ago(days=130),
@@ -673,44 +665,7 @@ def seed_demo():
             print(f"  Anomaly entry: BT-50 Pro — {anom_cons} L/100km (Traoré Adama)")
         db.commit()
 
-        # 4e. Webhook state (business owner) ——————————————————————————————————
-        brou = owner_records[1]
-        ws = db.query(WebhookState).filter(WebhookState.owner_id == brou.id).first()
-        if not ws:
-            db.add(WebhookState(
-                owner_id=brou.id,
-                last_sent_at=dt_ago(days=1, hours=6),
-                last_status_code=200,
-                created_at=dt_ago(days=90),
-                updated_at=dt_ago(days=1, hours=6),
-            ))
-            db.commit()
-            print("\n  Webhook state created for Brou Kouamé ✓")
-
-        # 4f. Report schedules (pro & business owners) —————————————————————————
-        for i, od in enumerate(OWNERS):
-            if od["plan"] == "starter":
-                continue
-            owner = owner_records[i]
-            exists = db.query(ReportSchedule).filter(ReportSchedule.owner_id == owner.id).first()
-            if exists:
-                continue
-            freq = "monthly" if od["plan"] == "pro" else "weekly"
-            db.add(ReportSchedule(
-                owner_id=owner.id,
-                enabled=True,
-                frequency=freq,
-                last_sent_at=dt_ago(days=7),
-                last_status="sent",
-                ai_reports_used_month=random.randint(1, 3),
-                usage_reset_at=TODAY.replace(day=1),
-                created_at=dt_ago(days=100),
-                updated_at=dt_ago(days=7),
-            ))
-        db.commit()
-        print("  Report schedules done ✓")
-
-        # 4g. One edited + one deleted entry to show UPDATE & DELETE in activity log
+        # 4e. One edited + one deleted entry to show UPDATE & DELETE in activity log
         print("\n  [activity] Seeding UPDATE & DELETE log entries...")
         # Grab an older entry on vehicle 7 (Navara) and simulate an edit
         navara = vehicle_records[7]
@@ -818,7 +773,6 @@ def seed_demo():
         print("  Anomaly:     BT-50 Pro consumption spike (~15.4 L/100km vs ~11 avg)")
         print("  Cost spike:  April vs March +30 %+ for Brou Kouamé")
         print("  Activity:    CREATE / UPDATE / DELETE all present in audit log")
-        print("  Webhook:     last dispatch 1 day ago, HTTP 200")
         print("-" * 60)
 
     except Exception as exc:

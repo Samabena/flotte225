@@ -10,7 +10,6 @@ from app.api.v1.endpoints import (
     admin,
     export,
     reports,
-    webhook,
     config,
     trips,
 )
@@ -26,6 +25,5 @@ api_router.include_router(dashboard.router)
 api_router.include_router(admin.router)
 api_router.include_router(export.router)
 api_router.include_router(reports.router)
-api_router.include_router(webhook.router)
 api_router.include_router(config.router)
 api_router.include_router(trips.router)

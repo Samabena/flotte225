@@ -4,7 +4,6 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # App
     SECRET_KEY: str
-    ENVIRONMENT: str = "development"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     SHOW_DOCS: bool = True
 
@@ -20,18 +19,6 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = ""
-
-    # AI Reports (OpenRouter)
-    OPENROUTER_API_KEY: str = ""
-    OPENROUTER_MODEL: str = "mistralai/mistral-large"
-
-    # WhatsApp (Meta Cloud API)
-    WHATSAPP_API_URL: str = ""
-    WHATSAPP_TOKEN: str = ""
-
-    # Webhook
-    WEBHOOK_URL: str = ""
-    WEBHOOK_INTERVAL_HOURS: int = 24
 
     # Google Maps
     GOOGLE_MAPS_API_KEY: str = ""

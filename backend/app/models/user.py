@@ -21,7 +21,6 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(100), nullable=False)
     company_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(20))
-    whatsapp_number: Mapped[str | None] = mapped_column(String(20))
     email_alerts_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
