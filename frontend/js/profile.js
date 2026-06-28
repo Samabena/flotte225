@@ -83,28 +83,18 @@ async function loadProfile() {
   document.getElementById('drv-count').textContent = usageText(d.active_drivers, plan.max_drivers);
   setBar('drv-bar', drvPct);
 
-  if (plan.ai_reports_per_month === 0) {
-    document.getElementById('ai-section').classList.add('hidden');
-  } else {
-    document.getElementById('ai-count').textContent = plan.ai_reports_per_month === null ? 'Illimité' : `quota : ${plan.ai_reports_per_month}/mois`;
-    document.getElementById('ai-bar').style.width = plan.ai_reports_per_month === null ? '30%' : '0%';
-  }
-
   // Features
   setFeature('feat-export', plan.has_export);
-  setFeature('feat-whatsapp', plan.has_whatsapp);
-  setFeature('feat-ai', plan.ai_reports_per_month !== 0);
-  setFeature('feat-webhook', plan.has_webhook);
 
   // Upgrade CTA
   const cta = document.getElementById('upgrade-cta');
   const upgradeText = document.getElementById('upgrade-text');
   if (planName === 'starter') {
     cta.classList.remove('hidden');
-    upgradeText.textContent = 'Passez au plan Pro (9 900 FCFA/mois) pour débloquer l\'export, WhatsApp, les rapports IA et jusqu\'à 15 véhicules.';
+    upgradeText.textContent = 'Passez au plan Pro (9 900 FCFA/mois) pour débloquer l\'export et jusqu\'à 15 véhicules.';
   } else if (planName === 'pro') {
     cta.classList.remove('hidden');
-    upgradeText.textContent = 'Passez au plan Business (24 900 FCFA/mois) pour les rapports IA illimités, les webhooks et des véhicules illimités.';
+    upgradeText.textContent = 'Passez au plan Business (24 900 FCFA/mois) pour des véhicules et chauffeurs illimités.';
   }
 
   document.getElementById('loading').classList.add('hidden');

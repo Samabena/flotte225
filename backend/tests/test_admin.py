@@ -525,7 +525,6 @@ class TestMyPlan:
         plan = res.json()["data"]["plan"]
         assert plan["name"] == "business"
         assert plan["has_export"] is True
-        assert plan["has_whatsapp"] is True
 
 
 # ── US-045: Upgrade prompt — 403 payload contains plan context ───────────────

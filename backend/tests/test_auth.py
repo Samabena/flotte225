@@ -311,10 +311,7 @@ def test_register_assigns_starter_plan(client, db):
             max_vehicles=2,
             max_drivers=5,
             price_fcfa=0,
-            ai_reports_per_month=0,
-            has_whatsapp=False,
             has_export=False,
-            has_webhook=False,
         )
     )
     db.commit()

@@ -57,7 +57,6 @@ async function loadSettings() {
       return;
     }
     const { data } = await res.json();
-    document.getElementById('wa-number').value           = data.whatsapp_number || '';
     document.getElementById('email-display').textContent = data.email || '—';
     document.getElementById('email-toggle').checked      = !!data.email_alerts_enabled;
   } catch {
@@ -102,27 +101,7 @@ async function changePassword() {
   }
 }
 
-// ── Section 3: WhatsApp ───────────────────────────────────────────────────────
-async function saveWhatsApp() {
-  const number = document.getElementById('wa-number').value.trim();
-  const msgEl  = document.getElementById('wa-msg');
-
-  const res = await fetch(`${API}/owner/whatsapp`, {
-    method: 'PATCH',
-    headers: { ...authHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ whatsapp_number: number }),
-  });
-
-  if (res.status === 401) { showSessionExpired(); return; }
-  const json = await res.json().catch(() => ({}));
-  if (res.ok) {
-    showMsg(msgEl, 'ok', json.message || 'Numéro enregistré.');
-  } else {
-    showMsg(msgEl, 'err', json.detail || 'Erreur lors de la mise à jour.');
-  }
-}
-
-// ── Section 4: Email alerts ───────────────────────────────────────────────────
+// ── Section 2: Email alerts ───────────────────────────────────────────────────
 async function saveEmailAlerts() {
   const enabled = document.getElementById('email-toggle').checked;
   const msgEl   = document.getElementById('email-msg');

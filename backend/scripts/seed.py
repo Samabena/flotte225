@@ -34,30 +34,21 @@ PLANS = [
         "max_vehicles": 2,
         "max_drivers": 3,
         "price_fcfa": 0,
-        "ai_reports_per_month": 0,
-        "has_whatsapp": False,
         "has_export": False,
-        "has_webhook": False,
     },
     {
         "name": "pro",
         "max_vehicles": 15,
         "max_drivers": 20,
         "price_fcfa": 9900,
-        "ai_reports_per_month": 5,
-        "has_whatsapp": True,
         "has_export": True,
-        "has_webhook": False,
     },
     {
         "name": "business",
         "max_vehicles": None,  # unlimited
         "max_drivers": None,
         "price_fcfa": 24900,
-        "ai_reports_per_month": None,  # unlimited
-        "has_whatsapp": True,
         "has_export": True,
-        "has_webhook": True,
     },
 ]
 

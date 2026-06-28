@@ -16,12 +16,7 @@ class SubscriptionPlan(Base):
     )  # NULL = unlimited
     max_drivers: Mapped[int | None] = mapped_column(Integer, nullable=True)
     price_fcfa: Mapped[int] = mapped_column(Integer, nullable=False)
-    ai_reports_per_month: Mapped[int | None] = mapped_column(
-        Integer, nullable=True
-    )  # NULL = unlimited
-    has_whatsapp: Mapped[bool] = mapped_column(Boolean, default=False)
     has_export: Mapped[bool] = mapped_column(Boolean, default=False)
-    has_webhook: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class OwnerSubscription(Base):

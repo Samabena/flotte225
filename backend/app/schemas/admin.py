@@ -54,10 +54,7 @@ class PlanDetails(BaseModel):
     name: str
     max_vehicles: int | None
     max_drivers: int | None
-    ai_reports_per_month: int | None
-    has_whatsapp: bool
     has_export: bool
-    has_webhook: bool
     price_fcfa: int
 
     model_config = {"from_attributes": True}
