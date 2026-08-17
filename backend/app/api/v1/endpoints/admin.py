@@ -18,7 +18,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_admin_user, get_current_owner
 from app.models.user import User
-from app.schemas.admin import AssignPlanRequest, UserSummary
+from app.schemas.admin import (
+    AssignPlanRequest,
+    OwnerAccountCreate,
+    OwnerAccountCreated,
+    UserSummary,
+)
 from app.services import admin_service, analytics_service
 
 router = APIRouter(tags=["admin"])
@@ -26,6 +31,30 @@ router = APIRouter(tags=["admin"])
 
 def _ok(data=None, message: str = ""):
     return {"success": True, "data": data, "message": message}
+
+
+# ── Admin-created OWNER account (demo/tester) ────────────────────────────────
+
+
+@router.post("/admin/users", status_code=status.HTTP_201_CREATED, response_model=None)
+def create_owner_account(
+    body: OwnerAccountCreate,
+    admin: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """Super Admin creates a demo/tester OWNER account with an auto-generated password."""
+    user, plaintext_password = admin_service.create_owner_account(
+        db, body.full_name, body.email
+    )
+    return _ok(
+        data=OwnerAccountCreated(
+            id=user.id,
+            full_name=user.full_name,
+            email=user.email,
+            generated_password=plaintext_password,
+        ),
+        message="Compte propriétaire créé avec succès.",
+    )
 
 
 # ── US-036: List / search all users ──────────────────────────────────────────

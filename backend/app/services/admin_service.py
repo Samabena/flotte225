@@ -21,6 +21,7 @@ from app.models.subscription import OwnerSubscription, SubscriptionPlan
 from app.models.user import User
 from app.models.vehicle import Vehicle
 from app.models.vehicle_driver import VehicleDriver
+from app.core.security import generate_temp_password, hash_password
 from app.schemas.admin import (
     AdminVehicleSummary,
     AssignPlanRequest,
@@ -50,6 +51,45 @@ def _get_plan_by_name(db: Session, plan_name: str) -> SubscriptionPlan:
             detail=f"Plan inconnu : {plan_name}. Valeurs valides : starter, pro, business",
         )
     return plan
+
+
+# ── Admin-created OWNER account (demo/tester) ────────────────────────────────
+
+
+def create_owner_account(db: Session, full_name: str, email: str) -> tuple[User, str]:
+    """Super Admin creates a demo/tester OWNER account, bypassing OTP verification."""
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Un compte existe déjà avec cet email",
+        )
+    plaintext_password = generate_temp_password()
+    user = User(
+        email=email,
+        password_hash=hash_password(plaintext_password),
+        role="OWNER",
+        full_name=full_name,
+        is_verified=True,
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    # Give the tester a fully working account, same as a normal signup gets
+    plan = _get_plan_by_name(db, "starter")
+    db.add(
+        OwnerSubscription(
+            owner_id=user.id,
+            plan_id=plan.id,
+            started_at=datetime.now(timezone.utc),
+            expires_at=None,
+            is_active=True,
+        )
+    )
+    db.commit()
+
+    return user, plaintext_password
 
 
 # ── US-036: List / search users ───────────────────────────────────────────────

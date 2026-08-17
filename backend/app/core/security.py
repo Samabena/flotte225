@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+import secrets
+import string
 import jwt
 from passlib.context import CryptContext
 from app.core.config import settings
@@ -8,6 +10,19 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
+
+
+def generate_temp_password(length: int = 13) -> str:
+    """Cryptographically strong random password for admin-provisioned accounts."""
+    alphabet = string.ascii_letters + string.digits + "!@#$%"
+    while True:
+        pwd = "".join(secrets.choice(alphabet) for _ in range(length))
+        if (
+            any(c.islower() for c in pwd)
+            and any(c.isupper() for c in pwd)
+            and any(c.isdigit() for c in pwd)
+        ):
+            return pwd
 
 
 def verify_password(plain: str, hashed: str) -> bool:

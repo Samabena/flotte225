@@ -561,3 +561,67 @@ class TestUpgradePrompt:
             "limit" in res.json()["detail"].lower()
             or "plan" in res.json()["detail"].lower()
         )
+
+
+# ── Admin-created OWNER account (demo/tester) ────────────────────────────────
+
+
+class TestCreateOwnerAccount:
+    def test_admin_creates_owner_with_generated_password(self, client, db):
+        _seed_plans(db)
+        admin_token = _create_admin(client, db, "sadmin-create-a@test.ci")
+
+        res = client.post(
+            "/api/v1/admin/users",
+            json={"full_name": "Test Tester", "email": "tester-create-a@demo.ci"},
+            headers=_headers(admin_token),
+        )
+        assert res.status_code == 201
+        data = res.json()["data"]
+        assert data["email"] == "tester-create-a@demo.ci"
+        assert data["full_name"] == "Test Tester"
+        assert len(data["generated_password"]) >= 12
+
+    def test_duplicate_email_returns_409(self, client, db):
+        _seed_plans(db)
+        admin_token = _create_admin(client, db, "sadmin-create-b@test.ci")
+        body = {"full_name": "Dup Owner", "email": "dup-create-b@demo.ci"}
+
+        res1 = client.post(
+            "/api/v1/admin/users", json=body, headers=_headers(admin_token)
+        )
+        assert res1.status_code == 201
+
+        res2 = client.post(
+            "/api/v1/admin/users", json=body, headers=_headers(admin_token)
+        )
+        assert res2.status_code == 409
+
+    def test_non_admin_cannot_create_owner(self, client, db):
+        _seed_plans(db)
+        owner_token = _register_and_verify(client, db, "owner-create-c@test.ci")
+
+        res = client.post(
+            "/api/v1/admin/users",
+            json={"full_name": "Nope", "email": "nope-create-c@demo.ci"},
+            headers=_headers(owner_token),
+        )
+        assert res.status_code == 403
+
+    def test_generated_password_logs_in_immediately(self, client, db):
+        _seed_plans(db)
+        admin_token = _create_admin(client, db, "sadmin-create-d@test.ci")
+
+        res = client.post(
+            "/api/v1/admin/users",
+            json={"full_name": "Login Tester", "email": "login-create-d@demo.ci"},
+            headers=_headers(admin_token),
+        )
+        password = res.json()["data"]["generated_password"]
+
+        login_res = client.post(
+            "/api/v1/auth/login",
+            json={"identifier": "login-create-d@demo.ci", "password": password},
+        )
+        assert login_res.status_code == 200
+        assert login_res.json()["role"] == "OWNER"

@@ -1,5 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 # ── User list / detail (US-036) ───────────────────────────────────────────────
@@ -16,6 +16,28 @@ class UserSummary(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Admin-created OWNER account (demo/tester) ────────────────────────────────
+
+
+class OwnerAccountCreate(BaseModel):
+    full_name: str
+    email: EmailStr
+
+    @field_validator("full_name")
+    @classmethod
+    def full_name_not_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Le nom complet est requis")
+        return v.strip()
+
+
+class OwnerAccountCreated(BaseModel):
+    id: int
+    full_name: str
+    email: str
+    generated_password: str  # plaintext, returned exactly once — never persisted or re-exposed
 
 
 # ── Plan assignment (US-040) ─────────────────────────────────────────────────

@@ -61,7 +61,15 @@
     <div id="tab-users">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <h1 class="text-xl font-bold text-[#005F02]">Gestion des utilisateurs</h1>
-      <span id="user-count" class="text-sm text-gray-500"></span>
+      <div class="flex items-center gap-3">
+        <span id="user-count" class="text-sm text-gray-500"></span>
+        <button
+          id="btn-open-create-owner"
+          class="bg-[#005F02] text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-[#004a01] transition"
+        >
+          + Nouveau compte propriétaire
+        </button>
+      </div>
     </div>
 
     <!-- Search & filter bar -->
@@ -203,7 +211,64 @@
     </div>
   </div>
 
-    <script src="/js/shell.js"></script>
+    <!-- Create OWNER account modal -->
+  <div id="modal-create-owner" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="card w-full max-w-sm p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-[#005F02]">Nouveau compte propriétaire</h2>
+        <button id="modal-create-owner-close" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Un mot de passe sera généré automatiquement. Le compte est créé déjà vérifié et actif — à usage démo/test.</p>
+      <label class="text-xs text-gray-500 mb-1 block">Nom complet</label>
+      <input
+        id="create-owner-name"
+        type="text"
+        placeholder="Nom du propriétaire"
+        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#005F02]/30"
+      />
+      <label class="text-xs text-gray-500 mb-1 block">Email</label>
+      <input
+        id="create-owner-email"
+        type="email"
+        placeholder="email@exemple.com"
+        class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#005F02]/30"
+      />
+      <div id="create-owner-error" class="hidden text-red-600 text-xs mb-3"></div>
+      <div class="flex gap-2">
+        <button id="modal-create-owner-close2" class="flex-1 border border-gray-200 rounded-lg py-2 text-sm hover:bg-gray-50">
+          Annuler
+        </button>
+        <button id="btn-create-owner" class="flex-1 bg-[#005F02] text-white rounded-lg py-2 text-sm font-medium hover:bg-[#004a01]">
+          Créer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credentials created — one-time reveal -->
+  <div id="modal-owner-credentials" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="card w-full max-w-sm p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-[#005F02]">Compte créé</h2>
+        <button id="modal-owner-credentials-close" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+      </div>
+      <p class="text-xs text-amber-700 bg-amber-50 rounded px-3 py-2 mb-4">Ce mot de passe ne sera plus jamais affiché. Copiez-le maintenant.</p>
+      <label class="text-xs text-gray-500 mb-1 block">Email</label>
+      <input id="cred-email" type="text" readonly class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3 bg-gray-50" />
+      <label class="text-xs text-gray-500 mb-1 block">Mot de passe généré</label>
+      <div class="flex gap-2 mb-4">
+        <div class="relative flex-1">
+          <input id="cred-password" type="password" readonly class="w-full border border-gray-200 rounded-lg px-3 py-2 pr-9 text-sm bg-gray-50 font-mono" />
+          <button type="button" id="btn-toggle-cred-password" class="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600" tabindex="-1">👁</button>
+        </div>
+        <button id="btn-copy-cred" class="border border-gray-200 rounded-lg px-3 py-2 text-xs hover:bg-gray-50 whitespace-nowrap">Copier</button>
+      </div>
+      <button id="btn-copy-cred-both" class="w-full border border-gray-200 rounded-lg py-2 text-xs hover:bg-gray-50 mb-2">Copier email + mot de passe</button>
+      <button id="modal-owner-credentials-done" class="w-full bg-[#005F02] text-white rounded-lg py-2 text-sm font-medium hover:bg-[#004a01]">Terminé</button>
+    </div>
+  </div>
+
+  <script src="/js/shell.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

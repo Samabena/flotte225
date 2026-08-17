@@ -218,6 +218,97 @@ document.getElementById('btn-assign-plan').addEventListener('click', async () =>
   }
 });
 
+// ── Create OWNER account (demo/tester) ────────────────────────────────────────
+
+document.getElementById('btn-open-create-owner').addEventListener('click', () => {
+  document.getElementById('create-owner-name').value = '';
+  document.getElementById('create-owner-email').value = '';
+  document.getElementById('create-owner-error').classList.add('hidden');
+  document.getElementById('modal-create-owner').classList.remove('hidden');
+});
+
+function closeCreateOwnerModal() {
+  document.getElementById('modal-create-owner').classList.add('hidden');
+}
+document.getElementById('modal-create-owner-close').addEventListener('click', closeCreateOwnerModal);
+document.getElementById('modal-create-owner-close2').addEventListener('click', closeCreateOwnerModal);
+
+document.getElementById('btn-create-owner').addEventListener('click', async () => {
+  const full_name = document.getElementById('create-owner-name').value.trim();
+  const email = document.getElementById('create-owner-email').value.trim();
+  const errorEl = document.getElementById('create-owner-error');
+  errorEl.classList.add('hidden');
+
+  if (!full_name || !email) {
+    errorEl.textContent = 'Nom complet et email requis.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  const res = await fetch(`${API}/admin/users`, {
+    method: 'POST',
+    headers: authHeader(),
+    body: JSON.stringify({ full_name, email }),
+  });
+  const json = await res.json();
+
+  if (!res.ok) {
+    errorEl.textContent = json.detail || 'Erreur lors de la création du compte.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  closeCreateOwnerModal();
+  document.getElementById('cred-email').value = json.data.email;
+  document.getElementById('cred-password').value = json.data.generated_password;
+  document.getElementById('cred-password').type = 'password';
+  document.getElementById('modal-owner-credentials').classList.remove('hidden');
+  loadUsers(currentQ(), currentRole());
+});
+
+// Credentials modal — reveal + copy (adapted from copyDriverLink in drivers.js)
+
+document.getElementById('btn-toggle-cred-password').addEventListener('click', function () {
+  const input = document.getElementById('cred-password');
+  input.type = input.type === 'password' ? 'text' : 'password';
+});
+
+async function copyText(text, btn) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  if (btn) {
+    const original = btn.textContent;
+    btn.textContent = '✓ Copié';
+    setTimeout(() => { btn.textContent = original; }, 1500);
+  }
+}
+
+document.getElementById('btn-copy-cred').addEventListener('click', (e) => {
+  copyText(document.getElementById('cred-password').value, e.currentTarget);
+});
+
+document.getElementById('btn-copy-cred-both').addEventListener('click', (e) => {
+  const email = document.getElementById('cred-email').value;
+  const password = document.getElementById('cred-password').value;
+  copyText(`Email: ${email}\nMot de passe: ${password}`, e.currentTarget);
+});
+
+function closeCredentialsModal() {
+  document.getElementById('modal-owner-credentials').classList.add('hidden');
+  document.getElementById('cred-password').value = '';
+  document.getElementById('cred-email').value = '';
+}
+document.getElementById('modal-owner-credentials-close').addEventListener('click', closeCredentialsModal);
+document.getElementById('modal-owner-credentials-done').addEventListener('click', closeCredentialsModal);
+
 // ── US-041: Analytics tab ─────────────────────────────────────────────────────
 
 async function loadAnalytics() {
